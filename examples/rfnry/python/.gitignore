@@ -1,0 +1,6 @@
+# runtime artifacts — reflections, outcomes, learned/, events.jsonl
+agents/**/data/
+.venv/
+__pycache__/
+*.pyc
+uv.lock

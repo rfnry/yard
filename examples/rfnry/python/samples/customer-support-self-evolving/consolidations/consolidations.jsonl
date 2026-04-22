@@ -1,0 +1,2 @@
+{"type":"consolidation","at":"2026-04-20T07:48:12.845759Z","task":"triage","scope_leaf":"acme","patterns_promoted":[],"patterns_rejected":["e725ca287701478e","3a039644e584e03b","94e3fe5c1581bd57"],"learned_refs":[]}
+{"type":"consolidation","at":"2026-04-20T07:48:51.065746Z","task":"triage","scope_leaf":"acme","patterns_promoted":["e725ca287701478e","3a039644e584e03b","94e3fe5c1581bd57"],"patterns_rejected":[],"learned_refs":["20260420-074851-e725ca287701478e.md","20260420-074851-3a039644e584e03b.md","20260420-074851-94e3fe5c1581bd57.md"]}
