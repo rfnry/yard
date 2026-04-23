@@ -1,6 +1,7 @@
 import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
 import { useMemo, useState } from 'react'
 import { Sidebar } from './sidebar'
+import { TopControl } from './top-control'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
 const GUEST_KEY = 'rfnry-team-communication-guest'
@@ -64,7 +65,8 @@ export function App() {
         }
         onThreadInvited={(thread) => setSelectedThreadId(thread.id)}
       >
-        <div className="grid grid-cols-[280px_1fr] gap-4">
+        <TopControl identity={identity} />
+        <div className="grid grid-cols-[280px_1fr] gap-4 mt-4">
           <Sidebar
             identity={identity}
             selectedThreadId={selectedThreadId}
