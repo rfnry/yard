@@ -7,7 +7,6 @@ import {
 } from '@rfnry/chat-client-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { findOrCreateDm } from './dm'
-import { buttonCls } from './ui'
 import { useUnread } from './unread'
 
 type Props = {
@@ -105,15 +104,15 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
   )
 
   return (
-    <aside className="flex flex-col gap-4 border border-neutral-800 p-3 text-xs">
+    <aside className="flex flex-col gap-4 p-3 text-xs">
       {/* Channels */}
       <section className="flex flex-col gap-2">
-        <span className="text-neutral-500">channels</span>
+        <span className="text-neutral-500 uppercase tracking-wide text-[10px]">channels</span>
         {threadsLoading && <div className="text-neutral-600 italic">loading…</div>}
         {!threadsLoading && channels.length === 0 && (
           <div className="text-neutral-600 italic">no channels</div>
         )}
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col">
           {channels.map((t) => {
             const label = (t.metadata as { label?: string } | undefined)?.label ?? t.id
             const active = selectedThreadId === t.id
@@ -123,13 +122,12 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
                 <button
                   type="button"
                   onClick={() => onPickThread(t.id)}
-                  className={`w-full text-left px-2 py-1 border ${
-                    active
-                      ? 'border-neutral-200 bg-neutral-200 text-black'
-                      : 'border-neutral-700 text-neutral-300 hover:border-neutral-500'
-                  }`}
+                  className={itemCls(active)}
                 >
-                  # {label}
+                  <span className="flex-1 truncate">
+                    <span className="text-neutral-600">#&nbsp;</span>
+                    {label}
+                  </span>
                   {unread > 0 && !active && <UnreadBadge count={unread} />}
                 </button>
               </li>
@@ -140,9 +138,9 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
 
       {/* Users */}
       <section className="flex flex-col gap-2">
-        <span className="text-neutral-500">users</span>
+        <span className="text-neutral-500 uppercase tracking-wide text-[10px]">users</span>
         {!presence.isHydrated && <div className="text-neutral-600 italic">loading presence…</div>}
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col">
           {users.map((u) => {
             const dmThreadId = dmIndex[u.id]
             const unread = dmThreadId ? (unreadCounts[dmThreadId] ?? 0) : 0
@@ -150,13 +148,11 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
             const isSelf = u.id === identity.id
             return (
               <li key={u.id}>
-                <button
-                  type="button"
-                  onClick={() => void openDm(u)}
-                  className={`${buttonCls} w-full text-left`}
-                >
-                  • {u.name}
-                  {isSelf && <span className="text-neutral-500"> (you)</span>}
+                <button type="button" onClick={() => void openDm(u)} className={itemCls(active)}>
+                  <span className="flex-1 truncate">
+                    {u.name}
+                    {isSelf && <span className="text-neutral-600"> (you)</span>}
+                  </span>
                   {unread > 0 && !active && <UnreadBadge count={unread} />}
                 </button>
               </li>
@@ -167,24 +163,20 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
 
       {/* Assistants */}
       <section className="flex flex-col gap-2">
-        <span className="text-neutral-500">assistants</span>
+        <span className="text-neutral-500 uppercase tracking-wide text-[10px]">assistants</span>
         {!presence.isHydrated && <div className="text-neutral-600 italic">loading presence…</div>}
         {presence.isHydrated && assistants.length === 0 && (
           <div className="text-neutral-600 italic">no agents online</div>
         )}
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col">
           {assistants.map((a) => {
             const dmThreadId = dmIndex[a.id]
             const unread = dmThreadId ? (unreadCounts[dmThreadId] ?? 0) : 0
             const active = dmThreadId !== undefined && dmThreadId === selectedThreadId
             return (
               <li key={a.id}>
-                <button
-                  type="button"
-                  onClick={() => void openDm(a)}
-                  className={`${buttonCls} w-full text-left`}
-                >
-                  • {a.name}
+                <button type="button" onClick={() => void openDm(a)} className={itemCls(active)}>
+                  <span className="flex-1 truncate">{a.name}</span>
                   {unread > 0 && !active && <UnreadBadge count={unread} />}
                 </button>
               </li>
@@ -196,9 +188,20 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
   )
 }
 
+// Slack-style sidebar items: no borders or backgrounds, just a text colour
+// shift on hover and a subtle highlight (bold + lighter text) when selected.
+function itemCls(active: boolean): string {
+  return [
+    'w-full text-left px-2 py-1 flex items-center gap-2 transition-colors',
+    active
+      ? 'text-neutral-100 font-semibold bg-neutral-800/60'
+      : 'text-neutral-400 hover:text-neutral-200',
+  ].join(' ')
+}
+
 function UnreadBadge({ count }: { count: number }) {
   return (
-    <span className="ml-2 inline-block rounded-full bg-neutral-200 text-black px-1.5 text-[10px] align-middle">
+    <span className="ml-auto inline-block rounded-full bg-red-500 text-white px-1.5 text-[10px] leading-4 min-w-4 text-center">
       {count}
     </span>
   )
