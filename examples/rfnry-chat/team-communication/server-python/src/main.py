@@ -12,7 +12,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from rfnry_chat_server import InMemoryChatStore  # noqa: E402
 
-from src.chat import create_chat_server  # noqa: E402
+from src.chat import bootstrap_channels, create_chat_server  # noqa: E402
 
 PORT = int(os.environ.get("PORT", "8000"))
 
@@ -22,7 +22,8 @@ chat_server = create_chat_server(store=InMemoryChatStore())
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     await chat_server.start()
-    print("multi-tenant chat server running (in-memory, no auth)")
+    await bootstrap_channels(chat_server.store)
+    print("team-communication chat server running (in-memory, no auth)")
     try:
         yield
     finally:
