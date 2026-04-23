@@ -7,7 +7,7 @@ type Props = {
   identity: UserIdentity
 }
 
-export function TopControl({ identity }: Props) {
+export function PingControl({ identity }: Props) {
   const presence = usePresence()
   const { data: threadPage } = useThreads({ limit: 50 })
   const channels =
@@ -89,7 +89,7 @@ export function TopControl({ identity }: Props) {
   }
 
   return (
-    <section className="border border-neutral-800 p-3 flex flex-col gap-2 text-xs">
+    <section className="mt-4 border-t border-neutral-800 pt-3 p-3 flex flex-col gap-2 text-xs">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-neutral-500">agent</span>
         <select

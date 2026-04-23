@@ -5,9 +5,9 @@ import {
   useAnyEventHandler,
 } from '@rfnry/chat-client-react'
 import { useEffect, useMemo, useState } from 'react'
+import { PingControl } from './ping-control'
 import { Sidebar } from './sidebar'
 import { ThreadPanel } from './thread-panel'
-import { TopControl } from './top-control'
 import { UnreadProvider, useUnread, useUnreadController } from './unread'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
@@ -90,7 +90,7 @@ export function App() {
               threadId={selectedThreadId}
             />
           </div>
-          <TopControl identity={identity} />
+          <PingControl identity={identity} />
         </UnreadProvider>
       </ChatProvider>
     </div>
