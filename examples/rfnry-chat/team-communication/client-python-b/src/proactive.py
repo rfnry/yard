@@ -60,9 +60,7 @@ async def stream_proactive_message(
         return subject
 
     addressing = (
-        f"Mention them inline as @{addressee_name}."
-        if mention_inline
-        else f"Address them once as {addressee_name}."
+        f"Mention them inline as @{addressee_name}." if mention_inline else f"Address them once as {addressee_name}."
     )
     user_prompt = (
         f"You are reaching out proactively to {addressee_name} via a {audience}. "

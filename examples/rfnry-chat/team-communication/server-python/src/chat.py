@@ -83,9 +83,6 @@ def create_chat_server(store: ChatStore) -> ChatServer:
             "",
         )
         kind = (ctx.thread.metadata or {}).get("kind", "?")
-        print(
-            f"msg kind={kind} thread={ctx.thread.id} "
-            f"author={ctx.event.author.id} preview={preview[:60]!r}"
-        )
+        print(f"msg kind={kind} thread={ctx.thread.id} author={ctx.event.author.id} preview={preview[:60]!r}")
 
     return chat_server

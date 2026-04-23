@@ -116,10 +116,7 @@ async def ping_channel(body: PingChannelBody) -> dict[str, str]:
         addressee_name=body.requested_by.name,
         mention_inline=True,
     )
-    print(
-        f"{IDENTITY.name} pinged channel={body.channel_id} "
-        f"requested_by={body.requested_by.id} subject={subject!r}"
-    )
+    print(f"{IDENTITY.name} pinged channel={body.channel_id} requested_by={body.requested_by.id} subject={subject!r}")
     return {"ok": "true", "channel_id": body.channel_id, "subject": subject}
 
 
@@ -170,10 +167,7 @@ async def ping_direct(body: PingDirectBody) -> dict[str, str]:
         addressee_name=body.user_name,
         mention_inline=False,
     )
-    print(
-        f"{IDENTITY.name} pinged direct user={body.user_id} "
-        f"thread={thread.id} subject={subject!r}"
-    )
+    print(f"{IDENTITY.name} pinged direct user={body.user_id} thread={thread.id} subject={subject!r}")
     return {"ok": "true", "thread_id": thread.id, "subject": subject}
 
 
