@@ -1,8 +1,14 @@
-import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
-import { useMemo, useState } from 'react'
+import {
+  ChatProvider,
+  type Event,
+  type UserIdentity,
+  useAnyEventHandler,
+} from '@rfnry/chat-client-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Sidebar } from './sidebar'
 import { ThreadPanel } from './thread-panel'
 import { TopControl } from './top-control'
+import { UnreadProvider, useUnread, useUnreadController } from './unread'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
 const GUEST_KEY = 'rfnry-team-communication-guest'
@@ -33,6 +39,7 @@ function loadOrMakeGuest(): { id: string; name: string } {
 export function App() {
   const guest = useMemo(loadOrMakeGuest, [])
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
+  const unread = useUnreadController()
 
   const identity: UserIdentity = useMemo(
     () => ({
@@ -64,23 +71,55 @@ export function App() {
             Unable to reach the team-communication chat server at {SERVER_URL}.
           </p>
         }
-        onThreadInvited={(thread) => setSelectedThreadId(thread.id)}
+        // NB: the default `onThreadInvited` (no-op) is intentional — agent
+        // pings now surface as unread badges in the sidebar instead of
+        // yanking the user's open thread out from under them.
       >
-        <TopControl identity={identity} />
-        <div className="grid grid-cols-[280px_1fr] gap-4 mt-4">
-          <Sidebar
-            identity={identity}
-            serverUrl={SERVER_URL}
-            selectedThreadId={selectedThreadId}
-            onPickThread={setSelectedThreadId}
-          />
-          <ThreadPanel
-            key={selectedThreadId ?? 'none'}
-            identity={identity}
-            threadId={selectedThreadId}
-          />
-        </div>
+        <UnreadProvider value={unread}>
+          <UnreadTracker selfId={identity.id} selectedThreadId={selectedThreadId} />
+          <div className="grid grid-cols-[280px_1fr] gap-4">
+            <Sidebar
+              identity={identity}
+              serverUrl={SERVER_URL}
+              selectedThreadId={selectedThreadId}
+              onPickThread={setSelectedThreadId}
+            />
+            <ThreadPanel
+              key={selectedThreadId ?? 'none'}
+              identity={identity}
+              threadId={selectedThreadId}
+            />
+          </div>
+          <TopControl identity={identity} />
+        </UnreadProvider>
       </ChatProvider>
     </div>
   )
+}
+
+/** Listens for every incoming event on the socket and increments unread
+ *  counts when a message lands in a thread the user isn't currently viewing.
+ *  Also clears the count for the currently-selected thread whenever it
+ *  changes, so opening a thread marks it read. */
+function UnreadTracker({
+  selfId,
+  selectedThreadId,
+}: {
+  selfId: string
+  selectedThreadId: string | null
+}) {
+  const { increment, clear } = useUnread()
+
+  useAnyEventHandler((event: Event) => {
+    if (event.type !== 'message') return
+    if (event.author.id === selfId) return
+    if (event.threadId === selectedThreadId) return
+    increment(event.threadId)
+  })
+
+  useEffect(() => {
+    if (selectedThreadId) clear(selectedThreadId)
+  }, [selectedThreadId, clear])
+
+  return null
 }

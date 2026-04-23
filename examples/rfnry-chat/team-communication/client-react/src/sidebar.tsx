@@ -5,9 +5,10 @@ import {
   usePresence,
   useThreads,
 } from '@rfnry/chat-client-react'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { findOrCreateDm } from './dm'
 import { buttonCls } from './ui'
+import { useUnread } from './unread'
 
 type Props = {
   identity: UserIdentity
@@ -20,11 +21,60 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
   const client = useChatClient()
   const { data: threadPage, isLoading: threadsLoading } = useThreads({ limit: 50 })
   const presence = usePresence()
+  const { counts: unreadCounts } = useUnread()
 
   const allThreads = threadPage?.items ?? []
   const channels = allThreads.filter(
     (t) => (t.metadata as { kind?: string } | undefined)?.kind === 'channel'
   )
+  const dmThreads = allThreads.filter(
+    (t) => (t.metadata as { kind?: string } | undefined)?.kind === 'dm'
+  )
+
+  // Map `identity_id -> thread_id` for DMs. Populated on-demand by fetching
+  // members for each DM thread we know about. `client.listMembers` is cheap
+  // against the in-memory store used by this example.
+  const [dmIndex, setDmIndex] = useState<Record<string, string>>({})
+
+  // Derive a stable, primitive key from the set of DM thread ids so the
+  // effect below re-runs only when that set actually changes (not on every
+  // parent re-render).
+  const dmThreadIdsKey = useMemo(
+    () =>
+      dmThreads
+        .map((t) => t.id)
+        .sort()
+        .join(','),
+    [dmThreads]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    const threadIds = dmThreadIdsKey ? dmThreadIdsKey.split(',') : []
+    async function rebuild() {
+      const next: Record<string, string> = {}
+      for (const threadId of threadIds) {
+        try {
+          const members = await client.listMembers(threadId)
+          const ids = members.map((m) => m.identityId)
+          if (ids.length === 1 && ids[0] === identity.id) {
+            // Self-DM — key by self.
+            next[identity.id] = threadId
+            continue
+          }
+          const other = ids.find((id) => id !== identity.id)
+          if (other) next[other] = threadId
+        } catch {
+          // Thread may have been deleted or become unreadable — skip.
+        }
+      }
+      if (!cancelled) setDmIndex(next)
+    }
+    void rebuild()
+    return () => {
+      cancelled = true
+    }
+  }, [client, identity.id, dmThreadIdsKey])
 
   const users = presence.byRole.user.filter((u) => u.id !== identity.id)
   const assistants = presence.byRole.assistant
@@ -56,6 +106,7 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
           {channels.map((t) => {
             const label = (t.metadata as { label?: string } | undefined)?.label ?? t.id
             const active = selectedThreadId === t.id
+            const unread = unreadCounts[t.id] ?? 0
             return (
               <li key={t.id}>
                 <button
@@ -68,6 +119,7 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
                   }`}
                 >
                   # {label}
+                  {unread > 0 && !active && <UnreadBadge count={unread} />}
                 </button>
               </li>
             )
@@ -83,17 +135,23 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
           <div className="text-neutral-600 italic">nobody else online</div>
         )}
         <ul className="flex flex-col gap-1">
-          {users.map((u) => (
-            <li key={u.id}>
-              <button
-                type="button"
-                onClick={() => void openDm(u)}
-                className={`${buttonCls} w-full text-left`}
-              >
-                • {u.name}
-              </button>
-            </li>
-          ))}
+          {users.map((u) => {
+            const dmThreadId = dmIndex[u.id]
+            const unread = dmThreadId ? (unreadCounts[dmThreadId] ?? 0) : 0
+            const active = dmThreadId !== undefined && dmThreadId === selectedThreadId
+            return (
+              <li key={u.id}>
+                <button
+                  type="button"
+                  onClick={() => void openDm(u)}
+                  className={`${buttonCls} w-full text-left`}
+                >
+                  • {u.name}
+                  {unread > 0 && !active && <UnreadBadge count={unread} />}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </section>
 
@@ -105,19 +163,33 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
           <div className="text-neutral-600 italic">no agents online</div>
         )}
         <ul className="flex flex-col gap-1">
-          {assistants.map((a) => (
-            <li key={a.id}>
-              <button
-                type="button"
-                onClick={() => void openDm(a)}
-                className={`${buttonCls} w-full text-left`}
-              >
-                • {a.name}
-              </button>
-            </li>
-          ))}
+          {assistants.map((a) => {
+            const dmThreadId = dmIndex[a.id]
+            const unread = dmThreadId ? (unreadCounts[dmThreadId] ?? 0) : 0
+            const active = dmThreadId !== undefined && dmThreadId === selectedThreadId
+            return (
+              <li key={a.id}>
+                <button
+                  type="button"
+                  onClick={() => void openDm(a)}
+                  className={`${buttonCls} w-full text-left`}
+                >
+                  • {a.name}
+                  {unread > 0 && !active && <UnreadBadge count={unread} />}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </section>
     </aside>
+  )
+}
+
+function UnreadBadge({ count }: { count: number }) {
+  return (
+    <span className="ml-2 inline-block rounded-full bg-neutral-200 text-black px-1.5 text-[10px] align-middle">
+      {count}
+    </span>
   )
 }
