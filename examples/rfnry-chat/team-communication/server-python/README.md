@@ -1,13 +1,19 @@
-# multi-tenant — chat server
+# team-communication — chat server
 
-Standalone `rfnry-chat-server` with an `InMemoryChatStore`. No embedded agent — the two org-scoped agents (`../client-python-a`, `../client-python-b`) connect as external participants over sockets.
+Standalone `rfnry-chat-server` with an `InMemoryChatStore`, shaped as a small Slack-style demo. Pre-creates two channel threads (`ch_general`, `ch_engineering`) at startup; DMs are created on demand by clients.
 
-Uses a custom `authorize` callback (`src/chat.py`) that trusts tenant match as the full access decision — the "workspace is the room" pattern. See [`../README.md`](../README.md) for the conceptual model and role matrix.
+Uses a hybrid `authorize` callback (`src/chat.py`): channel threads are public (anyone authenticated can read/post), DM threads are member-only. A small REST route override hides DM threads from non-members in `GET /threads` listings so users only see DMs they belong to. See [`../README.md`](../README.md) for the conceptual model and role matrix.
+
+## Layout
+
+- `src/main.py` — server entrypoint, pre-seeds channel threads
+- `src/chat.py` — hybrid `authorize` + DM-filter route override
+- `src/__init__.py` — package marker
 
 ## Run
 
 ```bash
-cd yard/examples/rfnry-chat/multi-tenant/server-python
+cd yard/examples/rfnry-chat/team-communication/server-python
 cp .env.example .env    # optional — only PORT override lives here
 uv sync --extra dev
 
@@ -32,3 +38,7 @@ uv run poe check              # ruff check .
 uv run poe check:fix          # ruff check --fix .
 uv run poe typecheck          # mypy src
 ```
+
+## Example vs library
+
+Both the hybrid `authorize` callback and the DM-filter route override live in **this example**, not in `rfnry-chat-server`. They're example-specific access twists (channels public, DMs private) — the library stays general and exposes the hooks this example plugs into.
