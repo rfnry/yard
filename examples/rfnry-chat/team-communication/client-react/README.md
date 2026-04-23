@@ -1,40 +1,35 @@
-# multi-tenant — react frontend
+# team-communication — react frontend
 
-Org + workspace + role switcher with a thread list. Tied to the standalone chat server at `http://localhost:8000` and the two org-scoped agents. See [`../README.md`](../README.md) for the full conceptual model and role matrix.
+Slack-shaped UI for the `team-communication` demo. Tied to the standalone chat server at `http://localhost:8000` and the three agent processes (A on :9100, B on :9101, C on :9102). See [`../README.md`](../README.md) for the full model, access rules, and the seven-step verification checklist.
 
-- Every tab mints a fresh `UserIdentity` (random UUID + `Guest-####`). That identity persists while the tab is open.
-- The **role selector** (`member` / `workspace-manager` / `org-manager` / `system-admin`) rewrites the identity's tenant wildcards. `tenants.ts#tenantFor()` is the single source of truth for that mapping.
-- Pick an organization, a workspace, and a role — the `ChatProvider` remounts via its `key` so `listThreads` refetches filtered to the new tenant shape.
-- Creating a thread writes `tenant: { organization, workspace, author: guest.id }`. No `addMember` of the agent: the server's custom `authorize` trusts tenant, and each agent joins tenant-matching threads on its own via `on_connect` + a 10s poll.
-- Messages are sent without `recipients` — the room is the audience. The tenant-matching agent picks them up and replies.
+- Every tab mints a fresh `UserIdentity` (random UUID + `Guest-####`) that persists while the tab is open.
+- Sidebar: a `#channel` list (all users see the same channels), a **Users** section (live presence of other humans), an **Assistants** section (live presence of the three agents), and a DM list (only DMs the tab's user is a member of).
+- Clicking a user name opens-or-reuses a DM with them (stable per-pair thread id).
+- The **TopControl** above the chat lets you fire either webhook on any online agent — "Ping in channel" posts into the currently-selected channel; "Ping me direct" opens a DM with that agent for the current user.
 
 ## Layout
 
 ```
 src/
-  main.tsx          root + StrictMode
-  app.tsx           state (org/workspace/role/selected thread), ChatProvider, layout
-  sidebar.tsx       org + workspace + role selectors, thread list, "+ new thread"
-  thread-panel.tsx  events + message input for the selected thread
-  tenants.ts        org/workspace definitions, agent identities, role → tenant mapping
-  ui.tsx            <EventFeed>, shared classes
+  main.tsx           root + StrictMode
+  app.tsx            guest identity + ChatProvider + layout
+  sidebar.tsx        channels + users + assistants + DMs
+  thread-panel.tsx   events + message input
+  top-control.tsx    agent + channel pickers + ping buttons
+  ui.tsx             <EventFeed>, shared classes
 ```
 
 ## Run
 
 ```bash
-# 1. Start the chat server (see ../server-python/README.md):
-#    uv run uvicorn src.main:asgi --port 8000
+# Prereqs (see ../README.md for the full five-terminal sequence):
+#   1. ../server-python      chat server on :8000
+#   2. ../client-python-a    Agent A on :9100
+#   3. ../client-python-b    Agent B on :9101
+#   4. ../client-python-c    Agent C on :9102
 
-# 2. Start agent-a (see ../client-python-a/README.md):
-#    uv run python -m src.main
-
-# 3. Start agent-b (see ../client-python-b/README.md):
-#    uv run python -m src.main
-
-# 4. Start the frontend:
-cd yard/examples/rfnry-chat/multi-tenant/client-react
-cp .env.example .env    # optional — only VITE_CHAT_SERVER_URL override lives here
+cd yard/examples/rfnry-chat/team-communication/client-react
+cp .env.example .env    # optional — VITE_CHAT_SERVER_URL + VITE_AGENT_*_WEBHOOK_URL overrides
 npm install
 npm run dev             # http://localhost:5173
 ```
