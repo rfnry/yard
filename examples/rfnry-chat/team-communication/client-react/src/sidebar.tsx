@@ -76,7 +76,18 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
     }
   }, [client, identity.id, dmThreadIdsKey])
 
-  const users = presence.byRole.user.filter((u) => u.id !== identity.id)
+  // Show self in the users list — clicking routes through `/chat/dm` with
+  // `{with: self.id}`, which the server resolves to a single-member self-DM
+  // (useful for jotting notes, like Slack's "You" entry). The server's
+  // stable `selfdm_<id>` client_id keeps repeat clicks on the same thread.
+  //
+  // NB: `usePresence()` excludes the caller (server-side decision — see the
+  // REST `GET /presence` handler), so we prepend self explicitly. Sorting
+  // self first matches the Slack "You" placement.
+  const users = useMemo<Identity[]>(
+    () => [identity, ...presence.byRole.user.filter((u) => u.id !== identity.id)],
+    [identity, presence.byRole.user]
+  )
   const assistants = presence.byRole.assistant
 
   const openDm = useCallback(
@@ -131,14 +142,12 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
       <section className="flex flex-col gap-2">
         <span className="text-neutral-500">users</span>
         {!presence.isHydrated && <div className="text-neutral-600 italic">loading presence…</div>}
-        {presence.isHydrated && users.length === 0 && (
-          <div className="text-neutral-600 italic">nobody else online</div>
-        )}
         <ul className="flex flex-col gap-1">
           {users.map((u) => {
             const dmThreadId = dmIndex[u.id]
             const unread = dmThreadId ? (unreadCounts[dmThreadId] ?? 0) : 0
             const active = dmThreadId !== undefined && dmThreadId === selectedThreadId
+            const isSelf = u.id === identity.id
             return (
               <li key={u.id}>
                 <button
@@ -147,6 +156,7 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
                   className={`${buttonCls} w-full text-left`}
                 >
                   • {u.name}
+                  {isSelf && <span className="text-neutral-500"> (you)</span>}
                   {unread > 0 && !active && <UnreadBadge count={unread} />}
                 </button>
               </li>
