@@ -1,12 +1,23 @@
 import type { Event } from '@rfnry/chat-client-react'
 
-export function EventFeed({ events }: { events: Event[] }) {
+type EventFeedProps = {
+  events: Event[]
+  /** When false, `run.started` / `run.completed` markers are hidden. Other
+   *  run events (failed, cancelled) stay visible — they carry information
+   *  the user actually needs. Default true. */
+  showRunEvents?: boolean
+}
+
+export function EventFeed({ events, showRunEvents = true }: EventFeedProps) {
+  const filtered = showRunEvents
+    ? events
+    : events.filter((e) => e.type !== 'run.started' && e.type !== 'run.completed')
   return (
     <ul className="flex flex-col gap-1 border border-neutral-800 bg-neutral-950 p-3 max-h-96 overflow-auto text-xs">
-      {events.length === 0 && (
+      {filtered.length === 0 && (
         <li className="text-neutral-600 italic">no events yet — send one below</li>
       )}
-      {events.map((e) => (
+      {filtered.map((e) => (
         <li key={e.id} className="text-neutral-300 border-b border-neutral-900 last:border-0 py-1">
           {renderEvent(e)}
         </li>
