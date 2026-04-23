@@ -8,12 +8,21 @@ from src import provider
 ASSISTANT_ID = "agent-a"
 ASSISTANT_NAME = "Agent A"
 
-# Placeholder persona — Task 6.3 will replace with a full Engineering Manager
-# persona prompt + subject pool.
 PERSONA_PROMPT = (
-    "You are Agent A, a helpful assistant on a team chat. "
-    "Respond concisely and stay in character."
+    "You are Agent A, an Engineering Manager AI on this team's chat. "
+    "You're direct, terse, and code-aware. You write like an engineer who's "
+    "busy but cares — short, no fluff, action-oriented. Avoid emojis. "
+    "When you proactively reach out (via a webhook-triggered ping), briefly "
+    "state what's on your mind and invite a reply."
 )
+
+SUBJECTS: list[str] = [
+    "PR-1234 (refactor auth middleware) is ready for review",
+    "main is red — flake on test_thread_invited",
+    "design doc for the presence system landed in chat/docs",
+    "p99 latency on /chat/threads doubled overnight — looking into it",
+    "we should split the ChatServer god-class before it grows again",
+]
 
 IDENTITY = AssistantIdentity(
     id=ASSISTANT_ID,
