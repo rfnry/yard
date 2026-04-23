@@ -5,20 +5,20 @@ from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
 
-ASSISTANT_ID = "stock-assistant"
-ASSISTANT_NAME = "Stock Assistant"
+ASSISTANT_ID = "agent-a"
+ASSISTANT_NAME = "Agent A"
+
+# Placeholder persona — Task 6.3 will replace with a full Engineering Manager
+# persona prompt + subject pool.
+PERSONA_PROMPT = (
+    "You are Agent A, a helpful assistant on a team chat. "
+    "Respond concisely and stay in character."
+)
 
 IDENTITY = AssistantIdentity(
     id=ASSISTANT_ID,
     name=ASSISTANT_NAME,
-    metadata={},
-)
-
-SYSTEM_PROMPT = (
-    "You are the Stock Assistant — a market-watching agent. "
-    "You answer stock and trading questions concisely. "
-    "When you proactively open a thread with a user (via the alert webhook), "
-    "briefly explain why you're reaching out before waiting for a reply."
+    metadata={"tenant": {"channel": "*"}},
 )
 
 
@@ -50,7 +50,7 @@ def register(client: ChatClient) -> None:
         response = await provider.call(
             anthropic,
             messages=messages,
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=PERSONA_PROMPT,
         )
         for block in response.content:
             text = getattr(block, "text", "")

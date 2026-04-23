@@ -10,11 +10,9 @@ import os  # noqa: E402
 from collections.abc import AsyncGenerator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
 from rfnry_chat_client import ChatClient  # noqa: E402
-from rfnry_chat_protocol import TextPart, UserIdentity  # noqa: E402
 
 from src.agent import IDENTITY, register  # noqa: E402
 
@@ -22,21 +20,49 @@ CHAT_SERVER_URL = os.environ.get("CHAT_SERVER_URL", "http://127.0.0.1:8000")
 PORT = int(os.environ.get("PORT", "9100"))
 
 
-class AlertUserRequest(BaseModel):
-    user_id: str
-    message: str
-    user_name: str | None = None
-    thread_id: str | None = None
-
-
 client = ChatClient(base_url=CHAT_SERVER_URL, identity=IDENTITY)
 register(client)
+
+# Tracks threads this agent has already joined, so reconnect-driven discovery
+# (on_connect → _join_all_channels) doesn't re-join threads that on_invited
+# already picked up while the socket was live.
+_joined_threads: set[str] = set()
+
+
+async def _join_all_channels() -> None:
+    """One-shot scan of tenant-visible threads at connect time.
+
+    Filters to `metadata.kind == "channel"` — DMs are joined reactively via
+    the on_invited handler when a user starts a DM with this agent. See
+    ../../multi-tenant/client-python-a/src/main.py for the reconnect-recovery
+    rationale.
+    """
+    page = await client.rest.list_threads()
+    for thread in page["items"]:
+        kind = (thread.metadata or {}).get("kind")
+        if kind != "channel":
+            continue
+        if thread.id in _joined_threads:
+            continue
+        await client.join_thread(thread.id)
+        _joined_threads.add(thread.id)
+        print(f"{IDENTITY.name} joined channel thread={thread.id}")
+
+
+@client.on_invited()
+async def _on_invited(frame) -> None:  # type: ignore[no-untyped-def]
+    _joined_threads.add(frame.thread.id)
+    kind = (frame.thread.metadata or {}).get("kind")
+    print(f"{IDENTITY.name} invited to thread={frame.thread.id} kind={kind}")
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    agent_task = asyncio.create_task(client.run())
-    print(f"stock-assistant agent connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
+    async def on_connect() -> None:
+        await _join_all_channels()
+
+    agent_task = asyncio.create_task(client.run(on_connect=on_connect))
+    print(f"{IDENTITY.name} connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
     try:
         yield
     finally:
@@ -53,7 +79,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             pass
 
 
-app = FastAPI(title="stock-assistant-agent", lifespan=lifespan)
+app = FastAPI(title="team-communication-agent-a", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -66,20 +92,6 @@ app.add_middleware(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.post("/alert-user")
-async def alert_user(body: AlertUserRequest) -> dict[str, str]:
-    if not body.user_id.strip():
-        raise HTTPException(status_code=400, detail="user_id is required")
-    user = UserIdentity(id=body.user_id, name=body.user_name or body.user_id)
-    thread, event = await client.open_thread_with(
-        message=[TextPart(text=body.message)],
-        invite=user,
-        thread_id=body.thread_id,
-    )
-    print(f"alerted user={body.user_id} thread={thread.id} event={event.id}")
-    return {"thread_id": thread.id, "event_id": event.id}
 
 
 if __name__ == "__main__":
