@@ -14,6 +14,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from rfnry_chat_client import ChatClient  # noqa: E402
+from rfnry_chat_protocol import UserIdentity  # noqa: E402
 
 from src.agent import IDENTITY, register  # noqa: E402
 from src.proactive import stream_proactive_message  # noqa: E402
@@ -120,6 +121,60 @@ async def ping_channel(body: PingChannelBody) -> dict[str, str]:
         f"requested_by={body.requested_by.id} subject={subject!r}"
     )
     return {"ok": "true", "channel_id": body.channel_id, "subject": subject}
+
+
+def _dm_client_id(a: str, b: str) -> str:
+    """Stable per-caller client_id for a DM between two participants.
+
+    ``client_id`` is how the server dedupes thread creations from the same
+    caller (see packages/server-python .../rest/threads.py — repeated POSTs
+    with the same ``client_id`` return the existing thread). Sorting the
+    participant ids means agent-a + user-x always yields the same key, so
+    repeated ``/ping-direct`` calls land in the same DM thread.
+    """
+    return "dm_" + "__".join(sorted([a, b]))
+
+
+class PingDirectBody(BaseModel):
+    user_id: str
+    user_name: str
+    requested_by: RequestedBy
+
+
+@app.post("/ping-direct")
+async def ping_direct(body: PingDirectBody) -> dict[str, str]:
+    user = UserIdentity(id=body.user_id, name=body.user_name, metadata={})
+    dm_key = _dm_client_id(IDENTITY.id, body.user_id)
+
+    # Open-or-reuse the DM thread. ``open_thread_with`` always sends an
+    # initial message, but here we want ``stream_proactive_message`` to post
+    # the opener, so we drive the primitives directly:
+    #   1. create_thread with a stable ``client_id`` — server returns the
+    #      existing thread on the second call (idempotent per-caller).
+    #   2. add_member for the user — ON CONFLICT DO NOTHING server-side.
+    #   3. join_thread — idempotent; ensures we get live events.
+    thread = await client.rest.create_thread(
+        tenant={},
+        metadata={"kind": "dm"},
+        client_id=dm_key,
+    )
+    await client.add_member(thread.id, user)
+    if thread.id not in _joined_threads:
+        await client.join_thread(thread.id)
+        _joined_threads.add(thread.id)
+
+    subject = await stream_proactive_message(
+        client,
+        thread_id=thread.id,
+        audience="direct DM",
+        addressee_name=body.user_name,
+        mention_inline=False,
+    )
+    print(
+        f"{IDENTITY.name} pinged direct user={body.user_id} "
+        f"thread={thread.id} subject={subject!r}"
+    )
+    return {"ok": "true", "thread_id": thread.id, "subject": subject}
 
 
 if __name__ == "__main__":
