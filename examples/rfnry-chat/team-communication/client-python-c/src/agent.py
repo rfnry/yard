@@ -36,6 +36,9 @@ def register(client: ChatClient) -> None:
 
     @client.on_message()
     async def respond(ctx: HandlerContext, send: HandlerSend):
+        # Suppress agent-to-agent loops in shared channels (see client-python-a).
+        if ctx.event.author.role != "user":
+            return
         history_page = await client.rest.list_events(ctx.event.thread_id, limit=200)
         history = history_page["items"]
         messages = provider.to_anthropic_messages(history, IDENTITY.id)

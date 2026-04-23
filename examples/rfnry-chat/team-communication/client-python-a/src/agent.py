@@ -36,6 +36,13 @@ def register(client: ChatClient) -> None:
 
     @client.on_message()
     async def respond(ctx: HandlerContext, send: HandlerSend):
+        # Suppress agent-to-agent loops in shared channels. The library already
+        # blocks self-triggering (author.id != self.id), but nothing stops
+        # agent-b from responding to agent-a's messages — which would cascade
+        # until MAX_HANDLER_CHAIN_DEPTH. Responding only to user-authored
+        # messages keeps agents "human-facing" without losing any intended UX.
+        if ctx.event.author.role != "user":
+            return
         history_page = await client.rest.list_events(ctx.event.thread_id, limit=200)
         history = history_page["items"]
         messages = provider.to_anthropic_messages(history, IDENTITY.id)
