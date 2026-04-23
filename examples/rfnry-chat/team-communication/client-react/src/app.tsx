@@ -1,19 +1,8 @@
 import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
 import { useMemo, useState } from 'react'
-import { Sidebar } from './sidebar'
-import {
-  findOrg,
-  ORGANIZATIONS,
-  type OrgId,
-  type Role,
-  tenantFor,
-  type WorkspaceId,
-} from './tenants'
-import { ThreadPanel } from './thread-panel'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
-
-const GUEST_KEY = 'rfnry-multi-tenant-guest'
+const GUEST_KEY = 'rfnry-team-communication-guest'
 
 function loadOrMakeGuest(): { id: string; name: string } {
   try {
@@ -40,48 +29,22 @@ function loadOrMakeGuest(): { id: string; name: string } {
 
 export function App() {
   const guest = useMemo(loadOrMakeGuest, [])
-  const [orgId, setOrgId] = useState<OrgId>(ORGANIZATIONS[0]!.id)
-  const [workspaceId, setWorkspaceId] = useState<WorkspaceId>(ORGANIZATIONS[0]!.workspaces[0]!.id)
-  const [role, setRole] = useState<Role>('member')
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
-
-  const org = findOrg(orgId)
-  const workspace = org.workspaces.find((w) => w.id === workspaceId) ?? org.workspaces[0]!
-  const effectiveWorkspaceId = workspace.id
 
   const identity: UserIdentity = useMemo(
     () => ({
       role: 'user',
       id: guest.id,
       name: guest.name,
-      metadata: {
-        tenant: tenantFor(role, org.id, effectiveWorkspaceId, guest.id),
-      },
+      metadata: { tenant: { channel: '*' } },
     }),
-    [guest.id, guest.name, org.id, effectiveWorkspaceId, role]
+    [guest.id, guest.name]
   )
-
-  const handlePickOrg = (next: OrgId) => {
-    setOrgId(next)
-    const nextOrg = findOrg(next)
-    setWorkspaceId(nextOrg.workspaces[0]!.id)
-    setSelectedThreadId(null)
-  }
-
-  const handlePickWorkspace = (next: WorkspaceId) => {
-    setWorkspaceId(next)
-    setSelectedThreadId(null)
-  }
-
-  const handlePickRole = (next: Role) => {
-    setRole(next)
-    setSelectedThreadId(null)
-  }
 
   return (
     <div className="min-h-screen max-w-5xl mx-auto px-6 py-6 font-mono">
       <header className="mb-4 flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-xl">multi-tenant</h1>
+        <h1 className="text-xl">team-communication</h1>
         <p className="text-xs text-neutral-500">
           you are <span className="text-neutral-200">{guest.name}</span>{' '}
           <span className="text-neutral-600">({guest.id})</span>
@@ -95,24 +58,21 @@ export function App() {
         fallback={<p className="text-neutral-500 text-xs">Connecting…</p>}
         errorFallback={
           <p className="text-red-400 text-xs">
-            Unable to reach the multi-tenant chat server at {SERVER_URL}.
+            Unable to reach the team-communication chat server at {SERVER_URL}.
           </p>
         }
+        onThreadInvited={(thread) => setSelectedThreadId(thread.id)}
       >
         <div className="grid grid-cols-[280px_1fr] gap-4">
-          <Sidebar
-            org={org}
-            workspaceId={effectiveWorkspaceId}
-            role={role}
-            selectedThreadId={selectedThreadId}
-            onPickOrg={handlePickOrg}
-            onPickWorkspace={handlePickWorkspace}
-            onPickRole={handlePickRole}
-            onPickThread={setSelectedThreadId}
-            identity={identity}
-            authorId={guest.id}
-          />
-          <ThreadPanel key={selectedThreadId ?? 'none'} threadId={selectedThreadId} />
+          <aside className="border border-neutral-800 p-3 text-xs">
+            <p className="text-neutral-500">sidebar (Tasks 7.3-7.5)</p>
+            {selectedThreadId && (
+              <p className="text-neutral-600 mt-2">selected: {selectedThreadId}</p>
+            )}
+          </aside>
+          <section className="border border-neutral-800 p-3 text-xs">
+            <p className="text-neutral-500">thread panel (Tasks 7.4-7.5)</p>
+          </section>
         </div>
       </ChatProvider>
     </div>
