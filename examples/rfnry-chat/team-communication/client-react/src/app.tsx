@@ -70,6 +70,7 @@ export function App() {
         <div className="grid grid-cols-[280px_1fr] gap-4 mt-4">
           <Sidebar
             identity={identity}
+            serverUrl={SERVER_URL}
             selectedThreadId={selectedThreadId}
             onPickThread={setSelectedThreadId}
           />

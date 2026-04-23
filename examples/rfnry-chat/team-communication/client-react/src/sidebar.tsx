@@ -2,24 +2,23 @@ import {
   type Identity,
   type UserIdentity,
   useChatClient,
-  useCreateThread,
   usePresence,
   useThreads,
 } from '@rfnry/chat-client-react'
 import { useCallback } from 'react'
-import { dmClientId } from './dm'
+import { findOrCreateDm } from './dm'
 import { buttonCls } from './ui'
 
 type Props = {
   identity: UserIdentity
+  serverUrl: string
   selectedThreadId: string | null
   onPickThread: (id: string | null) => void
 }
 
-export function Sidebar({ identity, selectedThreadId, onPickThread }: Props) {
+export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }: Props) {
   const client = useChatClient()
   const { data: threadPage, isLoading: threadsLoading } = useThreads({ limit: 50 })
-  const { mutateAsync: createThread } = useCreateThread()
   const presence = usePresence()
 
   const allThreads = threadPage?.items ?? []
@@ -32,18 +31,16 @@ export function Sidebar({ identity, selectedThreadId, onPickThread }: Props) {
 
   const openDm = useCallback(
     async (other: Identity) => {
-      const clientId = dmClientId(identity.id, other.id)
-      // createThread is idempotent via clientId — returns the same thread on repeat call.
-      const thread = await createThread({
-        tenant: {},
-        metadata: { kind: 'dm' },
-        clientId,
-      })
-      // Ensure the other participant is a member (server add_member is idempotent).
-      await client.addMember(thread.id, other)
+      // Call the example server's `/chat/dm` endpoint. Unlike the library's
+      // per-caller dedup, this endpoint matches on the DM's member set so the
+      // React sidebar and the agents' `/ping-direct` webhook converge on the
+      // same thread for any given (self, other) pair.
+      const thread = await findOrCreateDm(serverUrl, identity, other)
+      // Ensure we have a live socket subscription. joinThread is idempotent.
+      await client.joinThread(thread.id)
       onPickThread(thread.id)
     },
-    [client, createThread, identity.id, onPickThread]
+    [client, identity, onPickThread, serverUrl]
   )
 
   return (

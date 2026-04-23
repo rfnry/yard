@@ -5,13 +5,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os  # noqa: E402
+import secrets  # noqa: E402
 from collections.abc import AsyncGenerator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
-from datetime import datetime  # noqa: E402
+from datetime import UTC, datetime  # noqa: E402
+from typing import Any  # noqa: E402
 
-from fastapi import Depends, FastAPI  # noqa: E402
+from fastapi import Body, Depends, FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from rfnry_chat_protocol import Identity, Thread  # noqa: E402
+from rfnry_chat_protocol import Identity, Thread, parse_identity  # noqa: E402
 from rfnry_chat_server import InMemoryChatStore  # noqa: E402
 from rfnry_chat_server.server.rest.deps import identity_tenant, resolve_identity  # noqa: E402
 from rfnry_chat_server.store.types import Page, ThreadCursor  # noqa: E402
@@ -74,6 +76,109 @@ async def list_threads_with_dm_filter(
             continue
         visible.append(thread)
     return Page[Thread](items=visible, next_cursor=page.next_cursor)
+
+
+# Example-specific endpoint: find-or-create a DM thread with deduplication that
+# works ACROSS callers.
+#
+# Background: the library's `POST /chat/threads` dedups by `(caller_id,
+# client_id)` — two different callers passing the same `client_id` each get
+# their own thread. For DMs that's a bug: when agent-a's webhook creates a DM
+# with user u_xyz, and u_xyz later clicks "Agent A" in the sidebar, both ends
+# need to land on the SAME thread. We solve that here by scanning existing DM
+# threads and matching on the member set, not on the per-caller client_id.
+#
+# Body shape: `{"with": "<identity_id>", "with_identity": {role, id, name,
+# metadata}}`. The `with_identity` blob is required so we can add the other
+# side as a member when creating a fresh thread — the server otherwise has no
+# way to reconstruct the remote identity's role/metadata. For self-DMs
+# (`with == identity.id`), `with_identity` is ignored.
+#
+# MUST be registered BEFORE `app.include_router(...)` so our handler wins over
+# anything the library might add later under the same path.
+@app.post("/chat/dm", response_model=Thread)
+async def find_or_create_dm(
+    body: dict[str, Any] = Body(...),
+    identity: Identity = Depends(resolve_identity),
+) -> Thread:
+    other_id_raw = body.get("with")
+    if not isinstance(other_id_raw, str) or not other_id_raw.strip():
+        raise HTTPException(status_code=400, detail="'with' is required (identity id)")
+    other_id = other_id_raw.strip()
+    is_self_dm = other_id == identity.id
+
+    other_identity: Identity | None = None
+    if not is_self_dm:
+        raw_other = body.get("with_identity")
+        if isinstance(raw_other, dict):
+            try:
+                other_identity = parse_identity(raw_other)
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=400, detail=f"invalid with_identity: {exc}") from exc
+            if other_identity.id != other_id:
+                raise HTTPException(status_code=400, detail="with_identity.id must match 'with'")
+
+    # Expected participant set for matching — single-element for self-DMs.
+    want_members: set[str] = {identity.id} if is_self_dm else {identity.id, other_id}
+
+    # Scan every DM thread (visible at the library's tenant layer, which is
+    # permissive for `tenant={}` DMs) and return the first one whose member
+    # set equals the expected pair. Not bounded by caller — cross-caller dedup
+    # is exactly what we're fixing.
+    page = await chat_server.store.list_threads(tenant_filter={}, limit=1000)
+    for thread in page.items:
+        kind = (thread.metadata or {}).get("kind")
+        if kind != "dm":
+            continue
+        members = await chat_server.store.list_members(thread.id)
+        if {m.identity_id for m in members} == want_members:
+            # Found a match. Ensure caller is a member (should always be true,
+            # but guard against stale state) and return.
+            if not await chat_server.store.is_member(thread.id, identity.id):
+                await chat_server.store.add_member(thread.id, identity, added_by=identity)
+            return thread
+
+    # No existing thread — mint one. `client_id` is still recorded on the
+    # caller side for consistency with other code paths; matching is via the
+    # member set above, so the per-caller key is purely informational.
+    if is_self_dm:
+        client_id = f"selfdm_{identity.id}"
+    else:
+        client_id = "dm_" + "__".join(sorted([identity.id, other_id]))
+
+    now = datetime.now(UTC)
+    thread = Thread(
+        id=f"th_{secrets.token_hex(8)}",
+        tenant={},
+        metadata={"kind": "dm"},
+        created_at=now,
+        updated_at=now,
+    )
+    created = await chat_server.store.create_thread(
+        thread,
+        caller_identity_id=identity.id,
+        client_id=client_id,
+    )
+    await chat_server.store.add_member(created.id, identity, added_by=identity)
+    if not is_self_dm and other_identity is not None:
+        await chat_server.store.add_member(created.id, other_identity, added_by=identity)
+    # Publish the frames the library would normally publish — so both sides
+    # receive `thread:created`, `members:updated`, and `thread:invited` in
+    # real time (mirrors what POST /chat/threads + POST /members does).
+    members = await chat_server.store.list_members(created.id)
+    await chat_server.publish_thread_created(created)
+    await chat_server.publish_members_updated(
+        created.id,
+        [m.identity for m in members],
+        thread=created,
+    )
+    if not is_self_dm and other_identity is not None:
+        await chat_server.publish_thread_invited(
+            created,
+            added_member=other_identity,
+            added_by=identity,
+        )
+    return created
 
 
 app.include_router(chat_server.router, prefix="/chat")

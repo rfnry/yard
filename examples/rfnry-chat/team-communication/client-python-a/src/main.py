@@ -5,16 +5,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio  # noqa: E402
+import base64  # noqa: E402
 import contextlib  # noqa: E402
+import json  # noqa: E402
 import os  # noqa: E402
 from collections.abc import AsyncGenerator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 
-from fastapi import FastAPI  # noqa: E402
+import httpx  # noqa: E402
+from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from rfnry_chat_client import ChatClient  # noqa: E402
-from rfnry_chat_protocol import UserIdentity  # noqa: E402
+from rfnry_chat_protocol import Thread, UserIdentity  # noqa: E402
 
 from src.agent import IDENTITY, register  # noqa: E402
 from src.proactive import stream_proactive_message  # noqa: E402
@@ -120,16 +123,38 @@ async def ping_channel(body: PingChannelBody) -> dict[str, str]:
     return {"ok": "true", "channel_id": body.channel_id, "subject": subject}
 
 
-def _dm_client_id(a: str, b: str) -> str:
-    """Stable per-caller client_id for a DM between two participants.
+def _encode_identity_header(identity: UserIdentity | object) -> str:
+    """Base64url-encode the agent's identity for the `x-rfnry-identity` header.
 
-    ``client_id`` is how the server dedupes thread creations from the same
-    caller (see packages/server-python .../rest/threads.py — repeated POSTs
-    with the same ``client_id`` return the existing thread). Sorting the
-    participant ids means agent-a + user-x always yields the same key, so
-    repeated ``/ping-direct`` calls land in the same DM thread.
+    Mirrors the default auth helper baked into ``ChatClient`` (see
+    chat/packages/client-python .../client.py — `_default_auth`). The example
+    server's `/chat/dm` endpoint reads this header via ``resolve_identity``.
     """
-    return "dm_" + "__".join(sorted([a, b]))
+    raw = IDENTITY.model_dump(mode="json")
+    return base64.urlsafe_b64encode(json.dumps(raw, separators=(",", ":")).encode("utf-8")).decode("ascii")
+
+
+async def _find_or_create_dm(user: UserIdentity) -> Thread:
+    """Call the example server's `/chat/dm` find-or-create endpoint.
+
+    The library's `POST /chat/threads` dedups by `(caller_id, client_id)`,
+    which creates a separate thread for each side of an agent+user DM (the
+    bug this endpoint fixes). The server scans DM threads by member set and
+    returns an existing match regardless of which side originally created it.
+    """
+    headers = {
+        "content-type": "application/json",
+        "x-rfnry-identity": _encode_identity_header(IDENTITY),
+    }
+    async with httpx.AsyncClient() as http:
+        response = await http.post(
+            f"{CHAT_SERVER_URL.rstrip('/')}/chat/dm",
+            headers=headers,
+            json={"with": user.id, "with_identity": user.model_dump(mode="json")},
+        )
+    if response.status_code >= 400:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    return Thread.model_validate(response.json())
 
 
 class PingDirectBody(BaseModel):
@@ -141,21 +166,11 @@ class PingDirectBody(BaseModel):
 @app.post("/ping-direct")
 async def ping_direct(body: PingDirectBody) -> dict[str, str]:
     user = UserIdentity(id=body.user_id, name=body.user_name, metadata={})
-    dm_key = _dm_client_id(IDENTITY.id, body.user_id)
 
-    # Open-or-reuse the DM thread. ``open_thread_with`` always sends an
-    # initial message, but here we want ``stream_proactive_message`` to post
-    # the opener, so we drive the primitives directly:
-    #   1. create_thread with a stable ``client_id`` — server returns the
-    #      existing thread on the second call (idempotent per-caller).
-    #   2. add_member for the user — ON CONFLICT DO NOTHING server-side.
-    #   3. join_thread — idempotent; ensures we get live events.
-    thread = await client.rest.create_thread(
-        tenant={},
-        metadata={"kind": "dm"},
-        client_id=dm_key,
-    )
-    await client.add_member(thread.id, user)
+    # Find-or-create the DM via the example server's cross-caller-deduped
+    # endpoint. Both the React sidebar (user clicking "Agent A") and this
+    # webhook converge on the same thread for any given (agent, user) pair.
+    thread = await _find_or_create_dm(user)
     if thread.id not in _joined_threads:
         await client.join_thread(thread.id)
         _joined_threads.add(thread.id)
