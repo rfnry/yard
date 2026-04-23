@@ -1,6 +1,7 @@
 import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
 import { useMemo, useState } from 'react'
 import { Sidebar } from './sidebar'
+import { ThreadPanel } from './thread-panel'
 import { TopControl } from './top-control'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
@@ -72,9 +73,11 @@ export function App() {
             selectedThreadId={selectedThreadId}
             onPickThread={setSelectedThreadId}
           />
-          <section className="border border-neutral-800 p-3 text-xs">
-            <p className="text-neutral-500">thread panel (Tasks 7.4-7.5)</p>
-          </section>
+          <ThreadPanel
+            key={selectedThreadId ?? 'none'}
+            identity={identity}
+            threadId={selectedThreadId}
+          />
         </div>
       </ChatProvider>
     </div>
