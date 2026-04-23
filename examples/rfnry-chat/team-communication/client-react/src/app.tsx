@@ -1,5 +1,6 @@
 import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
 import { useMemo, useState } from 'react'
+import { Sidebar } from './sidebar'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
 const GUEST_KEY = 'rfnry-team-communication-guest'
@@ -64,12 +65,11 @@ export function App() {
         onThreadInvited={(thread) => setSelectedThreadId(thread.id)}
       >
         <div className="grid grid-cols-[280px_1fr] gap-4">
-          <aside className="border border-neutral-800 p-3 text-xs">
-            <p className="text-neutral-500">sidebar (Tasks 7.3-7.5)</p>
-            {selectedThreadId && (
-              <p className="text-neutral-600 mt-2">selected: {selectedThreadId}</p>
-            )}
-          </aside>
+          <Sidebar
+            identity={identity}
+            selectedThreadId={selectedThreadId}
+            onPickThread={setSelectedThreadId}
+          />
           <section className="border border-neutral-800 p-3 text-xs">
             <p className="text-neutral-500">thread panel (Tasks 7.4-7.5)</p>
           </section>
