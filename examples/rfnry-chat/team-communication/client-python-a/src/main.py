@@ -12,9 +12,11 @@ from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
 from rfnry_chat_client import ChatClient  # noqa: E402
 
 from src.agent import IDENTITY, register  # noqa: E402
+from src.proactive import stream_proactive_message  # noqa: E402
 
 CHAT_SERVER_URL = os.environ.get("CHAT_SERVER_URL", "http://127.0.0.1:8000")
 PORT = int(os.environ.get("PORT", "9100"))
@@ -92,6 +94,32 @@ app.add_middleware(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+class RequestedBy(BaseModel):
+    id: str
+    name: str
+
+
+class PingChannelBody(BaseModel):
+    channel_id: str
+    requested_by: RequestedBy
+
+
+@app.post("/ping-channel")
+async def ping_channel(body: PingChannelBody) -> dict[str, str]:
+    subject = await stream_proactive_message(
+        client,
+        thread_id=body.channel_id,
+        audience="channel",
+        addressee_name=body.requested_by.name,
+        mention_inline=True,
+    )
+    print(
+        f"{IDENTITY.name} pinged channel={body.channel_id} "
+        f"requested_by={body.requested_by.id} subject={subject!r}"
+    )
+    return {"ok": "true", "channel_id": body.channel_id, "subject": subject}
 
 
 if __name__ == "__main__":
