@@ -1,4 +1,4 @@
-# runtime artifacts — reflections, outcomes, learned/, events.jsonl
+# runtime artifacts — refinings, outcomes, learned/, events.jsonl
 agents/**/data/
 .venv/
 __pycache__/

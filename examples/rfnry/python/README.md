@@ -8,8 +8,8 @@ examples/python/
 ├── pyproject.toml           rfnry (editable) + fastapi + uvicorn
 ├── agents/
 │   ├── stock-agent/
-│   │   ├── minimal/         plain Q&A, no reflection
-│   │   ├── task-reasoning/  + tasks/ + reflection level 2 (critic on)
+│   │   ├── minimal/         plain Q&A, no refining
+│   │   ├── task-reasoning/  + tasks/ + refining level 2 (critic on)
 │   │   └── self-evolving/   + level 3 + org_id scope + consolidate()
 │   └── customer-support/
 │       ├── minimal/
@@ -17,7 +17,7 @@ examples/python/
 │       └── self-evolving/
 └── samples/                 real artifacts from a live Anthropic run
     └── customer-support-self-evolving/
-        ├── reflections/     3 pre-turn reflections (with engine-injected pattern_hash)
+        ├── refinings/     3 pre-turn refinings (with engine-injected pattern_hash)
         ├── outcomes/        3 critic evaluations
         ├── learned/         3 synthesized instruction snippets + _index.md
         └── consolidations/  audit trail + consolidations.jsonl
@@ -25,7 +25,7 @@ examples/python/
 
 Each tier is a complete agent folder — copied, not shared — so `diff -r agents/stock-agent/minimal agents/stock-agent/task-reasoning` shows exactly what grew between tiers.
 
-`samples/` contains committed snapshots of what the system produces when it runs for real. **Look there** if you want to see what reflections, outcomes, and promoted learnings look like without running the example yourself. See [`samples/README.md`](samples/README.md) for what to notice.
+`samples/` contains committed snapshots of what the system produces when it runs for real. **Look there** if you want to see what refinings, outcomes, and promoted lessons look like without running the example yourself. See [`samples/README.md`](samples/README.md) for what to notice.
 
 ## Quick start
 
@@ -56,7 +56,7 @@ curl -s localhost:8000/agents/stock-agent/minimal/chat \
   -H 'content-type: application/json' \
   -d '{"session_id":"s1","message":"How many WDG-001 in warehouse A?"}'
 
-# task-reasoning — reflection + critic run per turn
+# task-reasoning — refining + critic run per turn
 curl -s localhost:8000/agents/stock-agent/task-reasoning/chat \
   -H 'content-type: application/json' \
   -d '{"session_id":"s1","message":"How many WDG-001?","task":"stock-check"}'
@@ -117,10 +117,10 @@ diff -r agents/stock-agent/minimal agents/stock-agent/task-reasoning
 # → Only in .../task-reasoning/: tasks
 
 diff -r agents/stock-agent/task-reasoning agents/stock-agent/self-evolving
-# → TASK.md differs in reflection.level (2 vs 3)
+# → TASK.md differs in refining.level (2 vs 3)
 ```
 
-The entire self-improvement layer is a single folder addition. Configuration in `TASK.md` is what activates reflection / critic / consolidation. The agent's core identity (AGENT.md, INDEX.md, instructions/, knowledge/) stays identical across tiers.
+The entire self-improvement layer is a single folder addition. Configuration in `TASK.md` is what activates refining / critic / consolidation. The agent's core identity (AGENT.md, INDEX.md, instructions/, knowledge/) stays identical across tiers.
 
 ## Observing the loop
 
@@ -128,8 +128,8 @@ After a few turns at `task-reasoning` or `self-evolving`, the `data/` tree fills
 
 ```
 agents/stock-agent/task-reasoning/data/_default/tasks/stock-check/
-├── reflections/s1/1.md   pre-turn reflection, engine-injected pattern_hash
-├── reflections/s1/2.md
+├── refinings/s1/1.md   pre-turn refining, engine-injected pattern_hash
+├── refinings/s1/2.md
 ├── outcomes/s1/1.md      critic verdict + quality_score
 └── outcomes/s1/2.md
 ```
@@ -168,6 +168,6 @@ Without the env var, `pytest -m anthropic` cleanly skips. Bare `pytest` deselect
 
 ## Provider notes
 
-- **mock** — deterministic, structurally-valid reflections/outcomes. Good for end-to-end pipeline checks without burning tokens. Content is not useful for anything real. Lives at `src/rfnry/providers/mock.py`.
-- **anthropic** — cache-aware system split. Boot bundle passes as a cached content block; per-turn reflection becomes a second system block without `cache_control`. First-class adapter at `src/rfnry/providers/anthropic.py`. Install: `uv sync --extra anthropic`.
+- **mock** — deterministic, structurally-valid refinings/outcomes. Good for end-to-end pipeline checks without burning tokens. Content is not useful for anything real. Lives at `src/rfnry/providers/mock.py`.
+- **anthropic** — cache-aware system split. Boot bundle passes as a cached content block; per-turn refining becomes a second system block without `cache_control`. First-class adapter at `src/rfnry/providers/anthropic.py`. Install: `uv sync --extra anthropic`.
 - **openai** — system-role passthrough. First-class adapter at `src/rfnry/providers/openai.py`. Install: `uv sync --extra openai`.

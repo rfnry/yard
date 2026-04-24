@@ -9,8 +9,8 @@ landed on disk.
 
 ```
 samples/customer-support-self-evolving/
-├── reflections/
-│   ├── tkt1/1.md        pre-turn reflection (Level 1+)
+├── refinings/
+│   ├── tkt1/1.md        pre-turn refining (Level 1+)
 │   ├── tkt2/1.md
 │   └── tkt3/1.md
 ├── outcomes/
@@ -27,7 +27,7 @@ samples/customer-support-self-evolving/
 
 ## What to notice
 
-### Reflections (`reflections/tkt2/1.md`, `tkt3/1.md`)
+### Refinings (`refinings/tkt2/1.md`, `tkt3/1.md`)
 
 Each has YAML frontmatter with **engine-injected identity fields**
 (`task`, `session`, `turn`, `at`, `pattern_hash`) and
@@ -39,23 +39,23 @@ makes future consolidation possible.
 ### Outcomes (`outcomes/*/1.md`)
 
 Every outcome carries `verdict`, `quality_score`, and inherits the
-reflection's `pattern_hash`. The critic wrote substantive four-section
-analyses grading the main turn against the reflection's plan.
+refining's `pattern_hash`. The critic wrote substantive four-section
+analyses grading the main turn against the refining's plan.
 
-Notice `outcomes/tkt1/1.md`: the reflection for that turn produced an
+Notice `outcomes/tkt1/1.md`: the refining for that turn produced an
 **empty body** (model quirk on the first call — confidence dropped to
 the 0.3 cap because citations were empty). The critic still graded
 the turn on its merits (quality 0.92) and explicitly noted the missing
 plan in its **Verdict** section. This is the "graceful degradation"
-property at work: reflection failure → main turn proceeds → critic
+property at work: refining failure → main turn proceeds → critic
 grades honestly.
 
 ### Learned (`learned/<ts>-<hash>.md`)
 
 Three promoted instruction snippets, each synthesized by the consolidator
-from a reflection+outcome pair. Engine-injected frontmatter points at
+from a refining+outcome pair. Engine-injected frontmatter points at
 the evidence files. Body is model-authored, grounded in the paired
-reflection.
+refining.
 
 One standout — `<ts>-e725ca287701478e.md` synthesized "Damaged-on-Arrival
 Electronics Triage" — captures the Shipping policy clause citation
@@ -74,13 +74,13 @@ were promoted, which rejected, average quality per cluster.
 ## Caveats — honest notes
 
 - **Thresholds were lowered for this demo.** `min_occurrences: 1` in the
-  task's `reflection.promotion` config means every unique pattern
+  task's `refining.promotion` config means every unique pattern
   promotes. Production would use 3+. With exact-hash clustering, real
-  LLM output rarely aggregates at threshold 2+ because each reflection's
+  LLM output rarely aggregates at threshold 2+ because each refining's
   Plan section varies slightly. **v4's semantic clustering** replaces
   exact-hash with embedding similarity and is what makes higher
   thresholds realistic.
-- **Cost of this run**: three turns (reflection + main + critic each)
+- **Cost of this run**: three turns (refining + main + critic each)
   plus one consolidation. Roughly $0.08 in Anthropic tokens on
   `claude-sonnet-4-6`.
 - **These bytes are frozen in git.** Running the example yourself will

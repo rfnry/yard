@@ -30,7 +30,7 @@ from pydantic import BaseModel
 
 from rfnry.agent.core import Agent
 from rfnry.host.events import EventLog
-from rfnry.reflection.config import ReflectionConfig
+from rfnry.refining.config import RefiningConfig
 
 AGENTS_ROOT = Path(__file__).parent / "agents"
 PROVIDER_KIND = os.environ.get("PROVIDER", "mock")
@@ -81,7 +81,7 @@ def _get_agent(path: str) -> Agent:
         root=agent_root,
         provider=provider,
         namespaces=namespaces,
-        reflection=ReflectionConfig(provider=provider),
+        refining=RefiningConfig(provider=provider),
     )
     _AGENTS[path] = agent
     return agent
