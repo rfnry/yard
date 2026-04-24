@@ -4,11 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import asyncio  # noqa: E402
-import contextlib  # noqa: E402
 import os  # noqa: E402
-from collections.abc import AsyncGenerator  # noqa: E402
-from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -33,27 +29,7 @@ client = ChatClient(base_url=CHAT_SERVER_URL, identity=IDENTITY)
 register(client)
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    agent_task = asyncio.create_task(client.run())
-    print(f"stock-assistant agent connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
-    try:
-        yield
-    finally:
-        # Close the agent socket cleanly before cancelling the run loop.
-        # See ../../customer-support/server-client-python/src/main.py for the
-        # reasoning — avoids engineio cancelling its writer task mid-handshake
-        # on SIGINT.
-        with contextlib.suppress(BaseException):
-            await client.disconnect()
-        agent_task.cancel()
-        try:
-            await asyncio.wait_for(agent_task, timeout=5)
-        except (TimeoutError, asyncio.CancelledError, Exception):
-            pass
-
-
-app = FastAPI(title="stock-assistant-agent", lifespan=lifespan)
+app = FastAPI(title="stock-assistant-agent")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -83,21 +59,5 @@ async def alert_user(body: AlertUserRequest) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    import signal
-
-    import uvicorn
-
-    # See customer-support/server-client-python/src/main.py for rationale —
-    # take over signal handling so lifespan cleanup (await client.disconnect)
-    # runs inside a non-cancelled task.
-    config = uvicorn.Config(app, host="0.0.0.0", port=PORT)
-    server = uvicorn.Server(config)
-    server.install_signal_handlers = lambda: None  # type: ignore[attr-defined, method-assign]
-
-    async def _serve() -> None:
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: setattr(server, "should_exit", True))
-        await server.serve()
-
-    asyncio.run(_serve())
+    print(f"stock-assistant agent connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
+    client.serve(app, host="0.0.0.0", port=PORT)

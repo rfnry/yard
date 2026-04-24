@@ -5,8 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os  # noqa: E402
-from collections.abc import AsyncGenerator  # noqa: E402
-from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -38,20 +36,8 @@ def create_chat_server() -> ChatServer:
 
 chat_server = create_chat_server()
 
-
-@asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    await chat_server.start()
-    print("stock-assistant chat server running (in-memory, no auth)")
-    try:
-        yield
-    finally:
-        await chat_server.stop()
-
-
-app = FastAPI(title="stock-assistant-server", lifespan=lifespan)
+app = FastAPI(title="stock-assistant-server")
 app.state.chat_server = chat_server
-app.include_router(chat_server.router, prefix="/chat")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -66,10 +52,6 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-asgi = chat_server.mount_socketio(app)
-
-
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(asgi, host="0.0.0.0", port=PORT)
+    print("stock-assistant chat server running (in-memory, no auth)")
+    chat_server.serve(app, host="0.0.0.0", port=PORT)
