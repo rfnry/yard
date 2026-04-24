@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import asyncio  # noqa: E402
 import os  # noqa: E402
+from collections.abc import AsyncGenerator  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
 
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -29,7 +32,13 @@ client = ChatClient(base_url=CHAT_SERVER_URL, identity=IDENTITY)
 register(client)
 
 
-app = FastAPI(title="stock-assistant-agent")
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+    async with client.session():
+        yield
+
+
+app = FastAPI(title="stock-assistant-agent", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -59,5 +68,10 @@ async def alert_user(body: AlertUserRequest) -> dict[str, str]:
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     print(f"stock-assistant agent connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
-    client.serve(app, host="0.0.0.0", port=PORT)
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=PORT)
+    except asyncio.CancelledError:
+        pass

@@ -4,9 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import asyncio  # noqa: E402
 import base64  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
+from collections.abc import AsyncGenerator  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
 
 import httpx  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
@@ -62,7 +65,13 @@ async def on_connect() -> None:
     await _join_all_channels()
 
 
-app = FastAPI(title="team-communication-agent-b")
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+    async with client.session(on_connect=on_connect):
+        yield
+
+
+app = FastAPI(title="team-communication-agent-b", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -164,5 +173,10 @@ async def ping_direct(body: PingDirectBody) -> dict[str, str]:
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     print(f"{IDENTITY.name} connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
-    client.serve(app, on_connect=on_connect, host="0.0.0.0", port=PORT)
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=PORT)
+    except asyncio.CancelledError:
+        pass
