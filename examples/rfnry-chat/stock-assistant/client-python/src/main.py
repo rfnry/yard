@@ -34,7 +34,7 @@ register(client)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    async with client.session():
+    async with client.running():
         yield
 
 

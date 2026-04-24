@@ -28,7 +28,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     # client lifecycles are explicit sessions in the lifespan. No helper
     # is injecting anything. Consumer also owns include_router,
     # mount_socketio, and uvicorn.run (see __main__ below).
-    async with chat_server.session(), chat_client.session():
+    async with chat_server.running(), chat_client.running():
         print("chat server running (in-memory, no auth) + agent scheduled")
         yield
 

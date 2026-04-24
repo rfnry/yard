@@ -67,7 +67,7 @@ async def on_connect() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    async with client.session(on_connect=on_connect):
+    async with client.running(on_connect=on_connect):
         yield
 
 
