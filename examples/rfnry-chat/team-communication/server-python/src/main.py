@@ -27,13 +27,11 @@ chat_server = create_chat_server(store=InMemoryChatStore())
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    await chat_server.start()
+    # chat_server.start() is handled by serve(); this lifespan only bootstraps
+    # example-specific state that must run after the server is started.
     await bootstrap_channels(chat_server.store)
     print("team-communication chat server running (in-memory, no auth)")
-    try:
-        yield
-    finally:
-        await chat_server.stop()
+    yield
 
 
 app = FastAPI(title="multi-tenant", lifespan=lifespan)
@@ -181,7 +179,6 @@ async def find_or_create_dm(
     return created
 
 
-app.include_router(chat_server.router, prefix="/chat")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -196,10 +193,5 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-asgi = chat_server.mount_socketio(app)
-
-
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(asgi, host="0.0.0.0", port=PORT)
+    chat_server.serve(app, host="0.0.0.0", port=PORT)

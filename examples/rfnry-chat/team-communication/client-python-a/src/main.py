@@ -4,9 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import asyncio  # noqa: E402
 import base64  # noqa: E402
-import contextlib  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
 from collections.abc import AsyncGenerator  # noqa: E402
@@ -67,22 +65,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     async def on_connect() -> None:
         await _join_all_channels()
 
-    agent_task = asyncio.create_task(client.run(on_connect=on_connect))
     print(f"{IDENTITY.name} connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
-    try:
+    async with client.session(on_connect=on_connect):
         yield
-    finally:
-        # Close the agent socket cleanly before cancelling the run loop.
-        # See ../../customer-support/server-client-python/src/main.py for the
-        # reasoning — avoids engineio cancelling its writer task mid-handshake
-        # on SIGINT.
-        with contextlib.suppress(BaseException):
-            await client.disconnect()
-        agent_task.cancel()
-        try:
-            await asyncio.wait_for(agent_task, timeout=5)
-        except (TimeoutError, asyncio.CancelledError, Exception):
-            pass
 
 
 app = FastAPI(title="team-communication-agent-a", lifespan=lifespan)
@@ -187,21 +172,4 @@ async def ping_direct(body: PingDirectBody) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    import signal
-
-    import uvicorn
-
-    # See customer-support/server-client-python/src/main.py for rationale —
-    # take over signal handling so lifespan cleanup (await client.disconnect)
-    # runs inside a non-cancelled task.
-    config = uvicorn.Config(app, host="0.0.0.0", port=PORT)
-    server = uvicorn.Server(config)
-    server.install_signal_handlers = lambda: None  # type: ignore[attr-defined, method-assign]
-
-    async def _serve() -> None:
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: setattr(server, "should_exit", True))
-        await server.serve()
-
-    asyncio.run(_serve())
+    client.serve(app, host="0.0.0.0", port=PORT)
