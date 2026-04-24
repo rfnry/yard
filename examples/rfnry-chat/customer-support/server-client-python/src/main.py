@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import asyncio  # noqa: E402
 import os  # noqa: E402
 from collections.abc import AsyncGenerator  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
@@ -21,19 +22,20 @@ chat_server = create_chat_server(store=InMemoryChatStore())
 chat_client = create_chat_client(f"http://127.0.0.1:{PORT}")
 
 
-# Consumer lifespan runs inside chat_server.session() (injected by
-# chat_server.serve()). We plug chat_client.session() here so the outbound
-# agent connects after the server is up and disconnects cleanly on SIGINT.
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    print("chat server running (in-memory, no auth)")
-    async with chat_client.session():
-        print("agent scheduled")
+    # Demonstrates the "consumer owns everything" pattern: both server and
+    # client lifecycles are explicit sessions in the lifespan. No helper
+    # is injecting anything. Consumer also owns include_router,
+    # mount_socketio, and uvicorn.run (see __main__ below).
+    async with chat_server.session(), chat_client.session():
+        print("chat server running (in-memory, no auth) + agent scheduled")
         yield
 
 
 app = FastAPI(title="customer-support", lifespan=lifespan)
 app.state.chat_server = chat_server
+app.include_router(chat_server.router, prefix="/chat")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -48,5 +50,13 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+asgi = chat_server.mount_socketio(app)
+
+
 if __name__ == "__main__":
-    chat_server.serve(app, host="0.0.0.0", port=PORT)
+    import uvicorn
+
+    try:
+        uvicorn.run(asgi, host="0.0.0.0", port=PORT)
+    except asyncio.CancelledError:
+        pass
