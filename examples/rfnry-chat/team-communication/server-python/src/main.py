@@ -15,8 +15,8 @@ from fastapi import Body, Depends, FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from rfnry_chat_protocol import Identity, Thread, parse_identity  # noqa: E402
 from rfnry_chat_server import InMemoryChatStore  # noqa: E402
-from rfnry_chat_server.server.rest.deps import identity_tenant, resolve_identity  # noqa: E402
 from rfnry_chat_server.store.types import Page, ThreadCursor  # noqa: E402
+from rfnry_chat_server.transport.rest.deps import identity_tenant, resolve_identity  # noqa: E402
 
 from src.chat import bootstrap_channels, create_chat_server  # noqa: E402
 

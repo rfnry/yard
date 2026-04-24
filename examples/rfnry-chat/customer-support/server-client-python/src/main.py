@@ -27,7 +27,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     # Demonstrates the "consumer owns everything" pattern: both server and
     # client lifecycles are explicit sessions in the lifespan. No helper
     # is injecting anything. Consumer also owns include_router,
-    # mount_socketio, and uvicorn.run (see __main__ below).
+    # mount(), and uvicorn.run (see __main__ below).
     async with chat_server.running(), chat_client.running():
         print("chat server running (in-memory, no auth) + agent scheduled")
         yield
@@ -50,7 +50,7 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-asgi = chat_server.mount_socketio(app)
+asgi = chat_server.mount(app)
 
 
 if __name__ == "__main__":
