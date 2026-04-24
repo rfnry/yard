@@ -7,8 +7,6 @@ load_dotenv()
 import base64  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
-from collections.abc import AsyncGenerator  # noqa: E402
-from contextlib import asynccontextmanager  # noqa: E402
 
 import httpx  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
@@ -60,17 +58,11 @@ async def _on_invited(frame) -> None:  # type: ignore[no-untyped-def]
     print(f"{IDENTITY.name} invited to thread={frame.thread.id} kind={kind}")
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    async def on_connect() -> None:
-        await _join_all_channels()
-
-    print(f"{IDENTITY.name} connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
-    async with client.session(on_connect=on_connect):
-        yield
+async def on_connect() -> None:
+    await _join_all_channels()
 
 
-app = FastAPI(title="team-communication-agent-c", lifespan=lifespan)
+app = FastAPI(title="team-communication-agent-c")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -172,4 +164,5 @@ async def ping_direct(body: PingDirectBody) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    client.serve(app, host="0.0.0.0", port=PORT)
+    print(f"{IDENTITY.name} connecting to {CHAT_SERVER_URL} as {IDENTITY.id}")
+    client.serve(app, on_connect=on_connect, host="0.0.0.0", port=PORT)
