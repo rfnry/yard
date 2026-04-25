@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import re
+import sys
+
 from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend
 from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
-from src.mentions import parse_member_mentions
 
 ASSISTANT_ID = "agent-b"
 ASSISTANT_NAME = "Agent B"
@@ -15,10 +17,11 @@ PERSONA_PROMPT = (
     "keeping the trains running. Avoid emojis. When you proactively reach "
     "out (via a webhook-triggered ping), briefly state what's on your mind "
     "and invite a reply."
-    "\n\nWhen replying in a channel, you can address a specific teammate by "
-    "prefixing your message with @<their-name> (e.g. '@Agent B can you take this?'). "
-    "Only that teammate will receive your reply. Without an @-prefix, your reply goes "
-    "to the entire channel."
+    "\n\nWhen replying in a channel, ALWAYS begin your message with @<name> "
+    "to address the right teammate (the user who pinged you, or another "
+    "agent if you're handing off the conversation). The system uses this "
+    "prefix to route the message — without it, the reply has no recipient "
+    "and the system will fall back to replying to whoever pinged you."
 )
 
 SUBJECTS: list[str] = [
@@ -46,6 +49,14 @@ def register(client: ChatClient) -> None:
         # that hit this guard don't produce phantom run.started / run.completed.
         if ctx.event.author.role != "user":
             return
+
+        # Channels: respond ONLY when explicitly mentioned. Without a mention,
+        # the agent stays silent — channels are watch-only until pinged.
+        thread = await client.rest.get_thread(ctx.event.thread_id)
+        is_channel = (thread.metadata or {}).get("kind") == "channel"
+        if is_channel and IDENTITY.id not in (ctx.event.recipients or []):
+            return
+
         history_page = await client.rest.list_events(ctx.event.thread_id, limit=200)
         history = history_page["items"]
         messages = provider.to_anthropic_messages(history, IDENTITY.id)
@@ -66,55 +77,72 @@ def register(client: ChatClient) -> None:
             )
             return
 
-        # Determine whether this is a channel thread so we can parse @-mentions.
-        thread = await client.rest.get_thread(ctx.event.thread_id)
-        kind = (thread.metadata or {}).get("kind") if thread else None
-        is_channel = kind == "channel"
-
+        # Decide recipients up front by reading the model's leading text. We
+        # buffer until we either find @<name> + whitespace, or commit to the
+        # fallback (reply to whoever pinged us). Once decided, open the
+        # message_stream and replay the buffered head + stream the rest live.
         members_page = await client.rest.list_members(ctx.event.thread_id) if is_channel else []
-        members_list = [m.identity for m in members_page] if is_channel else []
+        members = [m.identity for m in members_page] if is_channel else []
+        members_by_name = {m.name.lower(): m for m in members}
+        fallback_recipients = [ctx.event.author.id] if is_channel else None
 
-        # Check for a leading @-mention in the model's first text block.
-        # We need the full text upfront to extract recipients before publishing,
-        # so the mention path uses a non-streaming call. The broadcast path
-        # (channel without @-mention, or DM) streams token-by-token.
-        response = await provider.call(
-            anthropic,
+        async with anthropic.messages.stream(
+            model=provider.ANTHROPIC_MODEL,
+            max_tokens=provider.ANTHROPIC_MAX_TOKENS,
+            system=PERSONA_PROMPT,
             messages=messages,
-            system_prompt=PERSONA_PROMPT,
-        )
-        first_text = next(
-            (
-                getattr(b, "text", "")
-                for b in response.content
-                if getattr(b, "type", None) == "text" and getattr(b, "text", "")
-            ),
-            "",
-        )
-        if is_channel and first_text:
-            parsed = parse_member_mentions(first_text, members_list)
-            if parsed.recipients:
-                # Mention path: emit non-streamed blocks with recipients set.
-                yield send.message(
-                    content=[TextPart(text=parsed.text_without_leading_mentions)],
-                    recipients=parsed.recipients,
-                )
-                for b in response.content[1:]:
-                    extra = getattr(b, "text", "")
-                    if getattr(b, "type", None) == "text" and extra:
-                        yield send.message(
-                            content=[TextPart(text=extra)],
-                            recipients=parsed.recipients,
-                        )
-                return
+        ) as model_stream:
+            head_buffer = ""
+            decided = False
+            recipients: list[str] | None = None
+            visible_head = ""
+            BUFFER_LIMIT = 64  # commit to fallback after this many chars
 
-        # Broadcast path: stream the response token-by-token.
-        async with send.message_stream() as stream:
-            async with anthropic.messages.stream(
-                model=provider.ANTHROPIC_MODEL,
-                max_tokens=provider.ANTHROPIC_MAX_TOKENS,
-                system=PERSONA_PROMPT,
-                messages=messages,
-            ) as model_stream:
+            stream_cm = None
+            stream = None
+            try:
                 async for token in model_stream.text_stream:
+                    if not decided:
+                        head_buffer += token
+                        stripped = head_buffer.lstrip()
+                        # Try mention extraction (only meaningful in channels).
+                        if is_channel:
+                            m = re.match(r"@([\w-]+)(\s+|$)", stripped)
+                            if m and m.group(1).lower() in members_by_name:
+                                target_id = members_by_name[m.group(1).lower()].id
+                                recipients = [target_id]
+                                # Strip the matched prefix from visible content.
+                                visible_head = stripped[m.end():]
+                                decided = True
+                            elif len(stripped) >= BUFFER_LIMIT or (
+                                stripped and not stripped.startswith("@")
+                            ):
+                                # No mention — fall back to original sender.
+                                recipients = fallback_recipients
+                                visible_head = head_buffer
+                                decided = True
+                        else:
+                            # DM: no mention routing, single recipient implicit.
+                            recipients = None
+                            visible_head = head_buffer
+                            decided = True
+
+                        if decided:
+                            stream_cm = send.message_stream(recipients=recipients)
+                            stream = await stream_cm.__aenter__()
+                            if visible_head:
+                                await stream.write(visible_head)
+                        # Otherwise keep buffering.
+                        continue
+
+                    # Stream is open; just forward.
                     await stream.write(token)
+
+                # End-of-model-output: if we never decided (model produced no text),
+                # close cleanly without emitting.
+                if not decided:
+                    return
+            finally:
+                if stream_cm is not None:
+                    exc_info = sys.exc_info()
+                    await stream_cm.__aexit__(*exc_info)
