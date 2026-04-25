@@ -7,8 +7,9 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/customer-support/server-client-python/.venv
-    environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    env_file:
+      - path: ./server-client-python/.env
+        required: false
     ports:
       - "8000:8000"
     command: >

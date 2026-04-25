@@ -22,8 +22,10 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/stock-assistant/client-python/.venv
+    env_file:
+      - path: ./client-python/.env
+        required: false
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CHAT_SERVER_URL: http://server:8000
     ports:
       - "9100:9100"

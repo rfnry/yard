@@ -22,8 +22,10 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/team-communication/client-python-a/.venv
+    env_file:
+      - path: ./client-python-a/.env
+        required: false
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CHAT_SERVER_URL: http://server:8000
     ports:
       - "9100:9100"
@@ -42,8 +44,10 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/team-communication/client-python-b/.venv
+    env_file:
+      - path: ./client-python-b/.env
+        required: false
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CHAT_SERVER_URL: http://server:8000
     ports:
       - "9101:9101"
@@ -62,8 +66,10 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/team-communication/client-python-c/.venv
+    env_file:
+      - path: ./client-python-c/.env
+        required: false
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CHAT_SERVER_URL: http://server:8000
     ports:
       - "9102:9102"

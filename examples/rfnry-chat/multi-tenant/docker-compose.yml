@@ -22,8 +22,10 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/multi-tenant/client-python-a/.venv
+    env_file:
+      - path: ./client-python-a/.env
+        required: false
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CHAT_SERVER_URL: http://server:8000
     command: >
       sh -c "
@@ -40,8 +42,10 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/multi-tenant/client-python-b/.venv
+    env_file:
+      - path: ./client-python-b/.env
+        required: false
     environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CHAT_SERVER_URL: http://server:8000
     command: >
       sh -c "
