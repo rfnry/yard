@@ -1,4 +1,5 @@
 import type { Event } from '@rfnry/chat-client-react'
+import type React from 'react'
 
 type EventFeedProps = {
   events: Event[]
@@ -19,18 +20,39 @@ export function EventFeed({ events, showRunEvents = true }: EventFeedProps) {
       )}
       {filtered.map((e) => (
         <li key={e.id} className="text-neutral-300 border-b border-neutral-900 last:border-0 py-1">
-          {renderEvent(e)}
+          {renderEventNode(e)}
         </li>
       ))}
     </ul>
   )
 }
 
-function renderEvent(e: Event): string {
+/** Wrap @<name> tokens in a blue span for visual mention cues. */
+function highlightMentions(text: string): React.ReactNode {
+  const parts = text.split(/(@[\w-]+)/g)
+  if (parts.length === 1) return text
+  return parts.map((part, i) =>
+    part.startsWith('@') ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: static split of a string — order never changes
+      <span key={i} className="text-blue-400">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  )
+}
+
+function renderEventNode(e: Event): React.ReactNode {
   switch (e.type) {
     case 'message': {
       const text = e.content.find((p) => p.type === 'text')
-      return `${e.author.name}: ${text && text.type === 'text' ? text.text : '[media]'}`
+      const body = text && text.type === 'text' ? text.text : '[media]'
+      return (
+        <>
+          {e.author.name}: {highlightMentions(body)}
+        </>
+      )
     }
     case 'reasoning':
       return `${e.author.name} (reasoning): ${e.content}`

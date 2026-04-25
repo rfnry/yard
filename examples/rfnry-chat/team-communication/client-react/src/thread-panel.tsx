@@ -1,5 +1,6 @@
 import {
   type Identity,
+  parseMemberMentions,
   type Thread,
   type UserIdentity,
   useThreadActions,
@@ -54,12 +55,16 @@ export function ThreadPanel({ identity, threadId }: Props) {
     if (!threadId) return
     const trimmed = text.trim()
     if (!trimmed) return
+    const mentions = isChannel
+      ? parseMemberMentions(trimmed, members, { roles: ['assistant'] })
+      : { recipients: [], spans: [] }
     void send({
       clientId: crypto.randomUUID(),
       content: [{ type: 'text', text: trimmed }],
+      ...(mentions.recipients.length > 0 ? { recipients: mentions.recipients } : {}),
     })
     setText('')
-  }, [send, text, threadId])
+  }, [send, text, threadId, members, isChannel])
 
   if (!threadId) {
     return (
