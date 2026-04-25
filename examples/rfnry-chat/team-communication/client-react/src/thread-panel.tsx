@@ -4,7 +4,6 @@ import {
   type Thread,
   type UserIdentity,
   useThreadActions,
-  useThreadEvents,
   useThreadIsWorking,
   useThreadMembers,
   useThreadMetadata,
@@ -38,7 +37,6 @@ function formatHeader(
 
 export function ThreadPanel({ identity, threadId }: Props) {
   const session = useThreadSession(threadId)
-  const events = useThreadEvents(threadId)
   const isWorking = useThreadIsWorking(threadId)
   const { send } = useThreadActions(threadId)
   const members = useThreadMembers(threadId)
@@ -97,7 +95,7 @@ export function ThreadPanel({ identity, threadId }: Props) {
           </label>
         )}
       </header>
-      <EventFeed events={events} showRunEvents={showRunEvents} />
+      <EventFeed threadId={threadId} members={members} showRunEvents={showRunEvents} />
       {isWorking && <div className="text-neutral-500 text-xs">assistant is working…</div>}
       <form
         onSubmit={(e) => {

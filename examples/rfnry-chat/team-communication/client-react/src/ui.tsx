@@ -1,53 +1,84 @@
 import type { Event } from '@rfnry/chat-client-react'
+import { type Identity, parseMemberMentions, useThreadFeed } from '@rfnry/chat-client-react'
 import type React from 'react'
 
 type EventFeedProps = {
-  events: Event[]
-
+  threadId: string | null
+  members: Identity[]
   showRunEvents?: boolean
 }
 
-export function EventFeed({ events, showRunEvents = true }: EventFeedProps) {
+export function EventFeed({ threadId, members, showRunEvents = true }: EventFeedProps) {
+  const feed = useThreadFeed(threadId)
   const filtered = showRunEvents
-    ? events
-    : events.filter((e) => e.type !== 'run.started' && e.type !== 'run.completed')
+    ? feed
+    : feed.filter((item) => {
+        if (item.kind === 'streaming') return true
+        return item.event.type !== 'run.started' && item.event.type !== 'run.completed'
+      })
   return (
     <ul className="flex flex-col gap-1 border border-neutral-800 bg-neutral-950 p-3 max-h-96 overflow-auto text-xs">
       {filtered.length === 0 && (
         <li className="text-neutral-600 italic">no events yet — send one below</li>
       )}
-      {filtered.map((e) => (
-        <li key={e.id} className="text-neutral-300 border-b border-neutral-900 last:border-0 py-1">
-          {renderEventNode(e)}
-        </li>
-      ))}
+      {filtered.map((item) => {
+        if (item.kind === 'event') {
+          return (
+            <li
+              key={item.event.id}
+              className="text-neutral-300 border-b border-neutral-900 last:border-0 py-1"
+            >
+              <EventBubble event={item.event} members={members} />
+            </li>
+          )
+        }
+        return (
+          <li
+            key={item.eventId}
+            className="text-neutral-300 border-b border-neutral-900 last:border-0 py-1"
+          >
+            <StreamingBubble author={item.author} text={item.text} members={members} />
+          </li>
+        )
+      })}
     </ul>
   )
 }
 
-function highlightMentions(text: string): React.ReactNode {
-  const parts = text.split(/(@[\w-]+)/g)
-  if (parts.length === 1) return text
-  return parts.map((part, i) =>
-    part.startsWith('@') ? (
-      // biome-ignore lint/suspicious/noArrayIndexKey: static split of a string — order never changes
-      <span key={i} className="text-blue-400">
-        {part}
+function renderTextWithMentions(text: string, members: Identity[]): React.ReactNode[] {
+  const { spans } = parseMemberMentions(text, members)
+  if (!spans.length) return [text]
+  const parts: React.ReactNode[] = []
+  let cursor = 0
+  for (const span of spans) {
+    if (span.start > cursor) parts.push(text.slice(cursor, span.start))
+    parts.push(
+      <span
+        key={`${span.start}-${span.identityId}`}
+        className="text-blue-400 bg-blue-500/10 px-1 rounded"
+      >
+        @{span.text}
       </span>
-    ) : (
-      part
     )
-  )
+    cursor = span.start + span.length
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return parts
 }
 
-function renderEventNode(e: Event): React.ReactNode {
+type EventBubbleProps = {
+  event: Event
+  members: Identity[]
+}
+
+function EventBubble({ event: e, members }: EventBubbleProps): React.ReactNode {
   switch (e.type) {
     case 'message': {
       const text = e.content.find((p) => p.type === 'text')
       const body = text && text.type === 'text' ? text.text : '[media]'
       return (
         <>
-          {e.author.name}: {highlightMentions(body)}
+          {e.author.name}: {renderTextWithMentions(body, members)}
         </>
       )
     }
@@ -74,6 +105,24 @@ function renderEventNode(e: Event): React.ReactNode {
     default:
       return `[${e.type}]`
   }
+}
+
+type StreamingBubbleProps = {
+  author: Identity
+  text: string
+  members: Identity[]
+}
+
+function StreamingBubble({ author, text, members }: StreamingBubbleProps): React.ReactNode {
+  return (
+    <span className="border-l-2 border-blue-500/30 pl-2">
+      {author.name}:{' '}
+      <span className="opacity-80">
+        {renderTextWithMentions(text, members)}
+        <span className="animate-pulse">▍</span>
+      </span>
+    </span>
+  )
 }
 
 export const inputCls =
