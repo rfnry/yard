@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-import re
 import sys
 
-from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend
+from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend, parse_member_mentions
 from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
 
-ASSISTANT_ID = "agent-a"
-ASSISTANT_NAME = "Agent A"
+ASSISTANT_ID = "engineer"
+ASSISTANT_NAME = "Engineer"
 
 PERSONA_PROMPT = (
-    "You are Agent A, an Engineering Manager AI on this team's chat. "
+    "You are Engineer, an Engineering Manager AI on this team's chat. "
     "You're direct, terse, and code-aware. You write like an engineer who's "
     "busy but cares — short, no fluff, action-oriented. Avoid emojis. "
     "When you proactively reach out (via a webhook-triggered ping), briefly "
@@ -75,7 +74,6 @@ def register(client: ChatClient) -> None:
 
         members_page = await client.rest.list_members(ctx.event.thread_id) if is_channel else []
         members = [m.identity for m in members_page] if is_channel else []
-        members_by_name = {m.name.lower(): m for m in members}
         fallback_recipients = [ctx.event.author.id] if is_channel else None
 
         async with anthropic.messages.stream(
@@ -99,12 +97,10 @@ def register(client: ChatClient) -> None:
                         stripped = head_buffer.lstrip()
 
                         if is_channel:
-                            m = re.match(r"@([\w-]+)(\s+|$)", stripped)
-                            if m and m.group(1).lower() in members_by_name:
-                                target_id = members_by_name[m.group(1).lower()].id
-                                recipients = [target_id]
-
-                                visible_head = stripped[m.end() :]
+                            parsed = parse_member_mentions(stripped, members)
+                            if parsed.recipients:
+                                recipients = parsed.recipients
+                                visible_head = parsed.body
                                 decided = True
                             elif len(stripped) >= BUFFER_LIMIT or (stripped and not stripped.startswith("@")):
                                 recipients = fallback_recipients
