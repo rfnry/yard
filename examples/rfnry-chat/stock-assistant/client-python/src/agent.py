@@ -47,12 +47,12 @@ def register(client: ChatClient) -> None:
             )
             return
 
-        response = await provider.call(
-            anthropic,
-            messages=messages,
-            system_prompt=SYSTEM_PROMPT,
-        )
-        for block in response.content:
-            text = getattr(block, "text", "")
-            if getattr(block, "type", None) == "text" and text:
-                yield send.message(content=[TextPart(text=text)])
+        async with send.message_stream() as stream:
+            async with anthropic.messages.stream(
+                model=provider.ANTHROPIC_MODEL,
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
+                messages=messages,
+            ) as model_stream:
+                async for token in model_stream.text_stream:
+                    await stream.write(token)
