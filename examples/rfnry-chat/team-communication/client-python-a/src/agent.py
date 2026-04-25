@@ -78,20 +78,47 @@ def register(client: ChatClient) -> None:
         members_page = await client.rest.list_members(ctx.event.thread_id) if is_channel else []
         members_list = [m.identity for m in members_page] if is_channel else []
 
+        # Check for a leading @-mention in the model's first text block.
+        # We need the full text upfront to extract recipients before publishing,
+        # so the mention path uses a non-streaming call. The broadcast path
+        # (channel without @-mention, or DM) streams token-by-token.
         response = await provider.call(
             anthropic,
             messages=messages,
             system_prompt=PERSONA_PROMPT,
         )
-        for block in response.content:
-            text = getattr(block, "text", "")
-            if getattr(block, "type", None) != "text" or not text:
-                continue
-            if is_channel:
-                parsed = parse_member_mentions(text, members_list)
+        first_text = next(
+            (
+                getattr(b, "text", "")
+                for b in response.content
+                if getattr(b, "type", None) == "text" and getattr(b, "text", "")
+            ),
+            "",
+        )
+        if is_channel and first_text:
+            parsed = parse_member_mentions(first_text, members_list)
+            if parsed.recipients:
+                # Mention path: emit non-streamed blocks with recipients set.
                 yield send.message(
                     content=[TextPart(text=parsed.text_without_leading_mentions)],
-                    recipients=parsed.recipients or None,
+                    recipients=parsed.recipients,
                 )
-            else:
-                yield send.message(content=[TextPart(text=text)])
+                for b in response.content[1:]:
+                    extra = getattr(b, "text", "")
+                    if getattr(b, "type", None) == "text" and extra:
+                        yield send.message(
+                            content=[TextPart(text=extra)],
+                            recipients=parsed.recipients,
+                        )
+                return
+
+        # Broadcast path: stream the response token-by-token.
+        async with send.message_stream() as stream:
+            async with anthropic.messages.stream(
+                model=provider.ANTHROPIC_MODEL,
+                max_tokens=provider.ANTHROPIC_MAX_TOKENS,
+                system=PERSONA_PROMPT,
+                messages=messages,
+            ) as model_stream:
+                async for token in model_stream.text_stream:
+                    await stream.write(token)
