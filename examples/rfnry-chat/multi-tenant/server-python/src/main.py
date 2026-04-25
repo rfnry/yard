@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rfnry_chat_server import InMemoryChatStore
 
+from src import routes
 from src.chat import create_chat_server
 
 PORT = int(os.environ.get("PORT", "8000"))
@@ -21,11 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+routes.register(app)
 
 
 if __name__ == "__main__":
