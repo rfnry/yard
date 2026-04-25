@@ -1,10 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 
-/** Per-thread unread-message counts. Maintained by `App` while the tab is
- *  open and wired up via React context so the sidebar can render badges and
- *  `ThreadPanel`-side clearing stays declarative. Resets on reload by design
- *  — this is a UX polish, not a durable read-receipt system.
- */
 export type UnreadMap = Record<string, number>
 
 type UnreadContextValue = {

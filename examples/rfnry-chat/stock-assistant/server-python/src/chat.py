@@ -19,9 +19,6 @@ def create_chat_server(*, store: ChatStore) -> ChatServer:
             (getattr(p, "text", "") for p in ctx.event.content if getattr(p, "type", None) == "text"),
             "",
         )
-        print(
-            f"msg thread={ctx.thread.id} author={ctx.event.author.id} "
-            f"preview={preview[:60]!r}"
-        )
+        print(f"msg thread={ctx.thread.id} author={ctx.event.author.id} preview={preview[:60]!r}")
 
     return chat_server

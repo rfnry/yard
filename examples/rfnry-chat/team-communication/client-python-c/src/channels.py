@@ -8,13 +8,7 @@ _joined_threads: set[str] = set()
 
 
 async def join_all_channels(client: ChatClient) -> None:
-    """One-shot scan of tenant-visible threads at connect time.
 
-    Filters to `metadata.kind == "channel"` — DMs are joined reactively via
-    the on_invited handler when a user starts a DM with this agent. See
-    ../../multi-tenant/client-python-a/src/main.py for the reconnect-recovery
-    rationale.
-    """
     page = await client.rest.list_threads()
     for thread in page["items"]:
         kind = (thread.metadata or {}).get("kind")
@@ -36,6 +30,5 @@ def register(client: ChatClient) -> None:
 
 
 def joined_threads() -> set[str]:
-    """Live mutable reference to the joined-thread set, for webhook handlers
-    that need to track state."""
+
     return _joined_threads

@@ -24,7 +24,6 @@ app.add_middleware(
 )
 routes.register(app)
 
-
 if __name__ == "__main__":
     print("stock-assistant chat server running (in-memory, no auth)")
     chat_server.serve(app, host="0.0.0.0", port=PORT)

@@ -17,10 +17,7 @@ async def main() -> None:
     register(client)
     channels.register(client)
 
-    print(
-        f"agent-a connecting to {base_url} as {IDENTITY.id} "
-        f"(tenant={IDENTITY.metadata['tenant']})"
-    )
+    print(f"agent-a connecting to {base_url} as {IDENTITY.id} (tenant={IDENTITY.metadata['tenant']})")
     await client.run(on_connect=lambda: channels.join_all_threads(client))
 
 

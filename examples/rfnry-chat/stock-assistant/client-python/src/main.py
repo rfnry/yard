@@ -35,7 +35,6 @@ app.add_middleware(
 )
 webhooks.register(app, client)
 
-
 if __name__ == "__main__":
     import uvicorn
 

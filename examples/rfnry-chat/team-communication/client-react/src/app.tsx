@@ -20,9 +20,7 @@ function loadOrMakeGuest(): { id: string; name: string } {
       const parsed = JSON.parse(raw) as { id: string; name: string }
       if (parsed?.id && parsed?.name) return parsed
     }
-  } catch {
-    // fall through to mint a new one
-  }
+  } catch {}
   const suffix = Math.floor(1000 + Math.random() * 9000)
   const guest = {
     id: `u_${crypto.randomUUID().slice(0, 8)}`,
@@ -30,9 +28,7 @@ function loadOrMakeGuest(): { id: string; name: string } {
   }
   try {
     sessionStorage.setItem(GUEST_KEY, JSON.stringify(guest))
-  } catch {
-    // sessionStorage blocked — identity just won't persist across refresh
-  }
+  } catch {}
   return guest
 }
 
@@ -71,9 +67,6 @@ export function App() {
             Unable to reach the team-communication chat server at {SERVER_URL}.
           </p>
         }
-        // NB: the default `onThreadInvited` (no-op) is intentional — agent
-        // pings now surface as unread badges in the sidebar instead of
-        // yanking the user's open thread out from under them.
       >
         <UnreadProvider value={unread}>
           <UnreadTracker selfId={identity.id} selectedThreadId={selectedThreadId} />
@@ -97,10 +90,6 @@ export function App() {
   )
 }
 
-/** Listens for every incoming event on the socket and increments unread
- *  counts when a message lands in a thread the user isn't currently viewing.
- *  Also clears the count for the currently-selected thread whenever it
- *  changes, so opening a thread marks it read. */
 function UnreadTracker({
   selfId,
   selectedThreadId,

@@ -3,9 +3,7 @@ import type React from 'react'
 
 type EventFeedProps = {
   events: Event[]
-  /** When false, `run.started` / `run.completed` markers are hidden. Other
-   *  run events (failed, cancelled) stay visible — they carry information
-   *  the user actually needs. Default true. */
+
   showRunEvents?: boolean
 }
 
@@ -27,7 +25,6 @@ export function EventFeed({ events, showRunEvents = true }: EventFeedProps) {
   )
 }
 
-/** Wrap @<name> tokens in a blue span for visual mention cues. */
 function highlightMentions(text: string): React.ReactNode {
   const parts = text.split(/(@[\w-]+)/g)
   if (parts.length === 1) return text

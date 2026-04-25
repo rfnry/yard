@@ -15,12 +15,7 @@ class ParsedMentions:
 
 
 def parse_member_mentions(text: str, members: list[Identity]) -> ParsedMentions:
-    """Extract @<name> tokens from `text`, resolve case-insensitively against
-    member names, and return the deduped recipient ids in first-seen order.
 
-    Also returns the input text with any leading @<name> mentions stripped, so
-    the message body reads naturally after we pin the recipients on the wire.
-    """
     by_name = {m.name.lower(): m for m in members}
 
     seen: set[str] = set()
@@ -35,9 +30,6 @@ def parse_member_mentions(text: str, members: list[Identity]) -> ParsedMentions:
         seen.add(hit.id)
         recipients.append(hit.id)
 
-    # Strip a single contiguous block of leading @<name> mentions if present —
-    # purely cosmetic so the body reads "can you take this?" instead of
-    # "@Agent B can you take this?"
     body = text.lstrip()
     while True:
         m = _MENTION_RE.match(body)

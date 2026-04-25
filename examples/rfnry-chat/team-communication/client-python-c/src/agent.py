@@ -44,14 +44,10 @@ def register(client: ChatClient) -> None:
 
     @client.on_message(lazy_run=True)
     async def respond(ctx: HandlerContext, send: HandlerSend):
-        # Suppress agent-to-agent loops in shared channels (see client-python-a).
-        # lazy_run=True: defer begin_run to first yield so sibling-agent messages
-        # that hit this guard don't produce phantom run.started / run.completed.
+
         if ctx.event.author.role != "user":
             return
 
-        # Channels: respond ONLY when explicitly mentioned. Without a mention,
-        # the agent stays silent — channels are watch-only until pinged.
         thread = await client.rest.get_thread(ctx.event.thread_id)
         is_channel = (thread.metadata or {}).get("kind") == "channel"
         if is_channel and IDENTITY.id not in (ctx.event.recipients or []):
@@ -77,10 +73,6 @@ def register(client: ChatClient) -> None:
             )
             return
 
-        # Decide recipients up front by reading the model's leading text. We
-        # buffer until we either find @<name> + whitespace, or commit to the
-        # fallback (reply to whoever pinged us). Once decided, open the
-        # message_stream and replay the buffered head + stream the rest live.
         members_page = await client.rest.list_members(ctx.event.thread_id) if is_channel else []
         members = [m.identity for m in members_page] if is_channel else []
         members_by_name = {m.name.lower(): m for m in members}
@@ -96,7 +88,7 @@ def register(client: ChatClient) -> None:
             decided = False
             recipients: list[str] | None = None
             visible_head = ""
-            BUFFER_LIMIT = 64  # commit to fallback after this many chars
+            BUFFER_LIMIT = 64
 
             stream_cm = None
             stream = None
@@ -105,24 +97,20 @@ def register(client: ChatClient) -> None:
                     if not decided:
                         head_buffer += token
                         stripped = head_buffer.lstrip()
-                        # Try mention extraction (only meaningful in channels).
+
                         if is_channel:
                             m = re.match(r"@([\w-]+)(\s+|$)", stripped)
                             if m and m.group(1).lower() in members_by_name:
                                 target_id = members_by_name[m.group(1).lower()].id
                                 recipients = [target_id]
-                                # Strip the matched prefix from visible content.
-                                visible_head = stripped[m.end():]
+
+                                visible_head = stripped[m.end() :]
                                 decided = True
-                            elif len(stripped) >= BUFFER_LIMIT or (
-                                stripped and not stripped.startswith("@")
-                            ):
-                                # No mention — fall back to original sender.
+                            elif len(stripped) >= BUFFER_LIMIT or (stripped and not stripped.startswith("@")):
                                 recipients = fallback_recipients
                                 visible_head = head_buffer
                                 decided = True
                         else:
-                            # DM: no mention routing, single recipient implicit.
                             recipients = None
                             visible_head = head_buffer
                             decided = True
@@ -132,14 +120,11 @@ def register(client: ChatClient) -> None:
                             stream = await stream_cm.__aenter__()
                             if visible_head:
                                 await stream.write(visible_head)
-                        # Otherwise keep buffering.
+
                         continue
 
-                    # Stream is open; just forward.
                     await stream.write(token)
 
-                # End-of-model-output: if we never decided (model produced no text),
-                # close cleanly without emitting.
                 if not decided:
                     return
             finally:

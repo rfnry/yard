@@ -34,21 +34,13 @@ class PingDirectBody(BaseModel):
 
 
 def _encode_identity_header() -> str:
-    """Base64url-encode the agent's identity for the x-rfnry-identity header.
-    Mirrors ChatClient's default auth helper. The server's /chat/dm endpoint
-    reads this header via resolve_identity.
-    """
+
     raw = IDENTITY.model_dump(mode="json")
     return base64.urlsafe_b64encode(json.dumps(raw, separators=(",", ":")).encode("utf-8")).decode("ascii")
 
 
 async def _find_or_create_dm(user: UserIdentity) -> Thread:
-    """Call the example server's /chat/dm find-or-create endpoint.
-    The library's POST /chat/threads dedups by (caller_id, client_id), which
-    creates a separate thread per side of an agent+user DM. The example
-    server scans DM threads by member set and returns an existing match
-    regardless of which side originally created it.
-    """
+
     headers = {
         "content-type": "application/json",
         "x-rfnry-identity": _encode_identity_header(),
@@ -76,8 +68,7 @@ def register(app: FastAPI, client: ChatClient) -> None:
             addressee_id=body.requested_by.id,
         )
         print(
-            f"{IDENTITY.name} pinged channel={body.channel_id} "
-            f"requested_by={body.requested_by.id} subject={subject!r}"
+            f"{IDENTITY.name} pinged channel={body.channel_id} requested_by={body.requested_by.id} subject={subject!r}"
         )
         return {"ok": "true", "channel_id": body.channel_id, "subject": subject}
 
@@ -97,8 +88,5 @@ def register(app: FastAPI, client: ChatClient) -> None:
             mention_inline=False,
             addressee_id=body.requested_by.id,
         )
-        print(
-            f"{IDENTITY.name} pinged direct user={body.user_id} "
-            f"thread={thread.id} subject={subject!r}"
-        )
+        print(f"{IDENTITY.name} pinged direct user={body.user_id} thread={thread.id} subject={subject!r}")
         return {"ok": "true", "thread_id": thread.id, "subject": subject}

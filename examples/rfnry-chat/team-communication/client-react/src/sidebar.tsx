@@ -30,14 +30,8 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
     (t) => (t.metadata as { kind?: string } | undefined)?.kind === 'dm'
   )
 
-  // Map `identity_id -> thread_id` for DMs. Populated on-demand by fetching
-  // members for each DM thread we know about. `client.listMembers` is cheap
-  // against the in-memory store used by this example.
   const [dmIndex, setDmIndex] = useState<Record<string, string>>({})
 
-  // Derive a stable, primitive key from the set of DM thread ids so the
-  // effect below re-runs only when that set actually changes (not on every
-  // parent re-render).
   const dmThreadIdsKey = useMemo(
     () =>
       dmThreads
@@ -57,15 +51,12 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
           const members = await client.listMembers(threadId)
           const ids = members.map((m) => m.identityId)
           if (ids.length === 1 && ids[0] === identity.id) {
-            // Self-DM — key by self.
             next[identity.id] = threadId
             continue
           }
           const other = ids.find((id) => id !== identity.id)
           if (other) next[other] = threadId
-        } catch {
-          // Thread may have been deleted or become unreadable — skip.
-        }
+        } catch {}
       }
       if (!cancelled) setDmIndex(next)
     }
@@ -75,14 +66,6 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
     }
   }, [client, identity.id, dmThreadIdsKey])
 
-  // Show self in the users list — clicking routes through `/chat/dm` with
-  // `{with: self.id}`, which the server resolves to a single-member self-DM
-  // (useful for jotting notes, like Slack's "You" entry). The server's
-  // stable `selfdm_<id>` client_id keeps repeat clicks on the same thread.
-  //
-  // NB: `usePresence()` excludes the caller (server-side decision — see the
-  // REST `GET /presence` handler), so we prepend self explicitly. Sorting
-  // self first matches the Slack "You" placement.
   const users = useMemo<Identity[]>(
     () => [identity, ...presence.byRole.user.filter((u) => u.id !== identity.id)],
     [identity, presence.byRole.user]
@@ -91,12 +74,8 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
 
   const openDm = useCallback(
     async (other: Identity) => {
-      // Call the example server's `/chat/dm` endpoint. Unlike the library's
-      // per-caller dedup, this endpoint matches on the DM's member set so the
-      // React sidebar and the agents' `/ping-direct` webhook converge on the
-      // same thread for any given (self, other) pair.
       const thread = await findOrCreateDm(serverUrl, identity, other)
-      // Ensure we have a live socket subscription. joinThread is idempotent.
+
       await client.joinThread(thread.id)
       onPickThread(thread.id)
     },
@@ -105,7 +84,6 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
 
   return (
     <aside className="flex flex-col gap-4 p-3 text-xs">
-      {/* Channels */}
       <section className="flex flex-col gap-2">
         <span className="text-neutral-500 uppercase tracking-wide text-[10px]">channels</span>
         {threadsLoading && <div className="text-neutral-600 italic">loading…</div>}
@@ -136,7 +114,6 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
         </ul>
       </section>
 
-      {/* Users */}
       <section className="flex flex-col gap-2">
         <span className="text-neutral-500 uppercase tracking-wide text-[10px]">users</span>
         {!presence.isHydrated && <div className="text-neutral-600 italic">loading presence…</div>}
@@ -161,7 +138,6 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
         </ul>
       </section>
 
-      {/* Assistants */}
       <section className="flex flex-col gap-2">
         <span className="text-neutral-500 uppercase tracking-wide text-[10px]">assistants</span>
         {!presence.isHydrated && <div className="text-neutral-600 italic">loading presence…</div>}
@@ -188,8 +164,6 @@ export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }:
   )
 }
 
-// Slack-style sidebar items: no borders or backgrounds, just a text colour
-// shift on hover and a subtle highlight (bold + lighter text) when selected.
 function itemCls(active: boolean): string {
   return [
     'w-full text-left px-2 py-1 flex items-center gap-2 transition-colors',

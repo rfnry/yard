@@ -22,42 +22,11 @@ async def stream_proactive_message(
     mention_inline: bool,
     addressee_id: str | None = None,
 ) -> str:
-    """Post a proactively-composed message into ``thread_id``.
 
-    On success, streams the reply token-by-token via ``stream:start`` /
-    ``:delta`` / ``:end`` frames. On the stub path (``ANTHROPIC_API_KEY``
-    unset) sends a one-shot fallback message so routing still demos without
-    an API key.
-
-    Parameters
-    ----------
-    client:
-        Connected ``ChatClient`` used to open the run and emit frames.
-    thread_id:
-        Target thread.
-    audience:
-        ``"channel"`` or ``"direct DM"`` — shaped into the user prompt so
-        the model picks an appropriate tone.
-    addressee_name:
-        Display name of the person/agent being addressed.
-    mention_inline:
-        ``True`` for channel pings (``@name`` mention), ``False`` for DMs
-        (address once by name, no mention).
-    addressee_id:
-        Identity id of the addressee. When ``audience == "channel"``, sets
-        ``recipients=[addressee_id]`` on the stream so other agents stay
-        silent while the pinged user can still see the deltas.
-
-    Returns
-    -------
-    str
-        The subject that was picked (useful for logging/response bodies).
-    """
     subject = random.choice(SUBJECTS)
     anthropic = provider.build_anthropic()
 
     if anthropic is None:
-        # Stub: skip streaming, post a single placeholder.
         await client.send_message(
             thread_id,
             content=[TextPart(text=f"[stub {IDENTITY.name}] subject: {subject}")],
@@ -74,8 +43,6 @@ async def stream_proactive_message(
         f"Stay in character. Don't double-greet. {addressing}"
     )
 
-    # Channel pings route the final event to the specific addressee so other
-    # agents don't react. Deltas remain visible to all room members.
     recipients = [addressee_id] if audience == "channel" and addressee_id else None
 
     run_id = await client.begin_run(thread_id)

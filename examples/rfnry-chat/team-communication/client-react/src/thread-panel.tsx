@@ -44,9 +44,7 @@ export function ThreadPanel({ identity, threadId }: Props) {
   const members = useThreadMembers(threadId)
   const thread = useThreadMetadata(threadId)
   const [text, setText] = useState('')
-  // Only surface this toggle in channels — DMs don't get noisy agent runs
-  // since agents reply via user-auth'd runs scoped to the DM itself, and
-  // hiding run markers in a 1:1 would be confusing rather than helpful.
+
   const [showRunEvents, setShowRunEvents] = useState(true)
   const kind = (thread?.metadata as { kind?: string } | undefined)?.kind
   const isChannel = kind === 'channel'

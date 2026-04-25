@@ -33,9 +33,7 @@ export function ThreadPanel({ threadId }: Props) {
         for (const evt of page.items) {
           store.getState().actions.addEvent(evt)
         }
-      } catch {
-        // ignore — live events will still arrive via the socket
-      }
+      } catch {}
     })()
     return () => {
       cancelled = true

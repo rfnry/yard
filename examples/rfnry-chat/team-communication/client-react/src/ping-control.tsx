@@ -21,7 +21,6 @@ export function PingControl({ identity }: Props) {
   const [busy, setBusy] = useState<null | 'channel' | 'direct'>(null)
   const [status, setStatus] = useState<string | null>(null)
 
-  // Auto-pick first agent once presence hydrates
   useEffect(() => {
     if (!agentId && onlineAgents.length > 0) setAgentId(onlineAgents[0]!.id)
     if (agentId && !onlineAgents.some((a) => a.id === agentId)) {

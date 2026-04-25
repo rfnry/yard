@@ -22,9 +22,7 @@ function loadOrMakeGuest(): { id: string; name: string } {
       const parsed = JSON.parse(raw) as { id: string; name: string }
       if (parsed?.id && parsed?.name) return parsed
     }
-  } catch {
-    // fall through to mint a new one
-  }
+  } catch {}
   const suffix = Math.floor(1000 + Math.random() * 9000)
   const guest = {
     id: `u_${crypto.randomUUID().slice(0, 8)}`,
@@ -32,9 +30,7 @@ function loadOrMakeGuest(): { id: string; name: string } {
   }
   try {
     sessionStorage.setItem(GUEST_KEY, JSON.stringify(guest))
-  } catch {
-    // sessionStorage blocked — identity just won't persist across refresh
-  }
+  } catch {}
   return guest
 }
 

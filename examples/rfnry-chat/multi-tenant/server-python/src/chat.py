@@ -11,14 +11,7 @@ from rfnry_chat_server import (
 
 
 async def _tenant_is_enough(identity: Identity, thread_id: str, action: str, *, target_id: str | None = None) -> bool:
-    """Authorize policy: tenant match is sufficient — no per-thread membership required.
 
-    The core server already checked `matches(thread.tenant, identity.tenant)` before
-    authorize fires, so by the time we get here, the identity's tenant is compatible
-    with the thread's tenant. In this "workspace is the room" model that's the full
-    access decision; membership stays as a soft concept (for inbox invites, audit,
-    recipient filtering) and is not an access gate.
-    """
     del identity, thread_id, action, target_id
     return True
 

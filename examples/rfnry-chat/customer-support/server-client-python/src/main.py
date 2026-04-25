@@ -40,7 +40,6 @@ routes.register(app)
 
 asgi = chat_server.mount(app)
 
-
 if __name__ == "__main__":
     import uvicorn
 

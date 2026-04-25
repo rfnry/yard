@@ -15,7 +15,6 @@ from src.agent import IDENTITY
 CHAT_SERVER_URL = os.environ.get("CHAT_SERVER_URL", "http://127.0.0.1:8000")
 PORT = int(os.environ.get("PORT", "9100"))
 
-
 client = ChatClient(base_url=CHAT_SERVER_URL, identity=IDENTITY)
 agent.register(client)
 channels.register(client)
@@ -47,7 +46,6 @@ async def health() -> dict[str, str]:
 
 
 webhooks.register(app, client)
-
 
 if __name__ == "__main__":
     import uvicorn
