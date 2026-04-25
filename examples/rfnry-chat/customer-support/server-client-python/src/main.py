@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from rfnry_chat_server import InMemoryChatStore
 
+from src import routes
 from src.agent import create_chat_client
 from src.chat import create_chat_server
 
@@ -20,10 +21,6 @@ chat_client = create_chat_client(f"http://127.0.0.1:{PORT}")
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    # Demonstrates the "consumer owns everything" pattern: both server and
-    # client lifecycles are explicit sessions in the lifespan. No helper
-    # is injecting anything. Consumer also owns include_router,
-    # mount(), and uvicorn.run (see __main__ below).
     async with chat_server.running(), chat_client.running():
         print("chat server running (in-memory, no auth) + agent scheduled")
         yield
@@ -39,12 +36,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
-
+routes.register(app)
 
 asgi = chat_server.mount(app)
 
