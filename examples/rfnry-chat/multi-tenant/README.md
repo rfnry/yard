@@ -185,6 +185,34 @@ org-mgr / cross-org {org_x, *, *}   {org_y, *, *}             no         —
 admin            *any*              {*, *, *}                 yes        true   ← escalation
 ```
 
+## Run with Docker Compose
+
+```bash
+# start everything in detached mode
+docker compose up -d
+
+# tail logs (all services)
+docker compose logs -f
+
+# tail one service
+docker compose logs -f <service>
+
+# restart a service after editing source
+docker compose restart <service>
+
+# pick up new .env values (compose only re-reads env on recreate)
+docker compose up -d --force-recreate <service>
+
+# stop and remove containers
+docker compose down
+```
+
+Service names: `server`, `agent-a`, `agent-b`, `web`
+
+Place agent-side `.env` files in each agent's source dir (e.g.
+`client-python-a/.env`). The compose file loads them via `env_file:`
+with `required: false` so the file is optional.
+
 ## Running
 
 Four terminals:
