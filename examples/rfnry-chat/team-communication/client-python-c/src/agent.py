@@ -4,6 +4,7 @@ from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend
 from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
+from src.mentions import parse_member_mentions
 
 ASSISTANT_ID = "agent-c"
 ASSISTANT_NAME = "Agent C"
@@ -14,6 +15,10 @@ PERSONA_PROMPT = (
     "summaries without losing the human signal. Avoid emojis. When you "
     "proactively reach out (via a webhook-triggered ping), briefly state "
     "what's on your mind and invite a reply."
+    "\n\nWhen replying in a channel, you can address a specific teammate by "
+    "prefixing your message with @<their-name> (e.g. '@Agent B can you take this?'). "
+    "Only that teammate will receive your reply. Without an @-prefix, your reply goes "
+    "to the entire channel."
 )
 
 SUBJECTS: list[str] = [
@@ -61,6 +66,14 @@ def register(client: ChatClient) -> None:
             )
             return
 
+        # Determine whether this is a channel thread so we can parse @-mentions.
+        thread = await client.rest.get_thread(ctx.event.thread_id)
+        kind = (thread.metadata or {}).get("kind") if thread else None
+        is_channel = kind == "channel"
+
+        members_page = await client.rest.list_members(ctx.event.thread_id) if is_channel else []
+        members_list = [m.identity for m in members_page] if is_channel else []
+
         response = await provider.call(
             anthropic,
             messages=messages,
@@ -68,5 +81,13 @@ def register(client: ChatClient) -> None:
         )
         for block in response.content:
             text = getattr(block, "text", "")
-            if getattr(block, "type", None) == "text" and text:
+            if getattr(block, "type", None) != "text" or not text:
+                continue
+            if is_channel:
+                parsed = parse_member_mentions(text, members_list)
+                yield send.message(
+                    content=[TextPart(text=parsed.text_without_leading_mentions)],
+                    recipients=parsed.recipients or None,
+                )
+            else:
                 yield send.message(content=[TextPart(text=text)])
