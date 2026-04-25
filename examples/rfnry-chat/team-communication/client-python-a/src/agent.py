@@ -34,13 +34,15 @@ IDENTITY = AssistantIdentity(
 def register(client: ChatClient) -> None:
     anthropic = provider.build_anthropic()
 
-    @client.on_message()
+    @client.on_message(lazy_run=True)
     async def respond(ctx: HandlerContext, send: HandlerSend):
         # Suppress agent-to-agent loops in shared channels. The library already
         # blocks self-triggering (author.id != self.id), but nothing stops
         # agent-b from responding to agent-a's messages — which would cascade
         # until MAX_HANDLER_CHAIN_DEPTH. Responding only to user-authored
         # messages keeps agents "human-facing" without losing any intended UX.
+        # lazy_run=True: defer begin_run to first yield so sibling-agent messages
+        # that hit this guard don't produce phantom run.started / run.completed.
         if ctx.event.author.role != "user":
             return
         history_page = await client.rest.list_events(ctx.event.thread_id, limit=200)
