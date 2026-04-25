@@ -1,0 +1,49 @@
+name: rfnry-chat-stock-assistant
+
+services:
+  server:
+    image: python:3.13-slim
+    working_dir: /work/yard/examples/rfnry-chat/stock-assistant/server-python
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/stock-assistant/server-python/.venv
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+      pip install -q uv &&
+      uv sync --extra dev &&
+      uv run python -m src.main
+      "
+
+  agent:
+    image: python:3.13-slim
+    working_dir: /work/yard/examples/rfnry-chat/stock-assistant/client-python
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/stock-assistant/client-python/.venv
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CHAT_SERVER_URL: http://server:8000
+    ports:
+      - "9100:9100"
+    command: >
+      sh -c "
+      pip install -q uv &&
+      uv sync --extra dev &&
+      uv run python -m src.main
+      "
+    depends_on:
+      - server
+
+  web:
+    image: node:20-alpine
+    working_dir: /work/yard/examples/rfnry-chat/stock-assistant/client-react
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/stock-assistant/client-react/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - server

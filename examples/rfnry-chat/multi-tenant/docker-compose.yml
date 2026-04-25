@@ -1,0 +1,65 @@
+name: rfnry-chat-multi-tenant
+
+services:
+  server:
+    image: python:3.13-slim
+    working_dir: /work/yard/examples/rfnry-chat/multi-tenant/server-python
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/multi-tenant/server-python/.venv
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+      pip install -q uv &&
+      uv sync --extra dev &&
+      uv run python -m src.main
+      "
+
+  agent-a:
+    image: python:3.13-slim
+    working_dir: /work/yard/examples/rfnry-chat/multi-tenant/client-python-a
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/multi-tenant/client-python-a/.venv
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CHAT_SERVER_URL: http://server:8000
+    command: >
+      sh -c "
+      pip install -q uv &&
+      uv sync --extra dev &&
+      uv run python -m src.main
+      "
+    depends_on:
+      - server
+
+  agent-b:
+    image: python:3.13-slim
+    working_dir: /work/yard/examples/rfnry-chat/multi-tenant/client-python-b
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/multi-tenant/client-python-b/.venv
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CHAT_SERVER_URL: http://server:8000
+    command: >
+      sh -c "
+      pip install -q uv &&
+      uv sync --extra dev &&
+      uv run python -m src.main
+      "
+    depends_on:
+      - server
+
+  web:
+    image: node:20-alpine
+    working_dir: /work/yard/examples/rfnry-chat/multi-tenant/client-react
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry-chat/multi-tenant/client-react/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - server
