@@ -1,21 +1,17 @@
 from __future__ import annotations
 
-from dotenv import load_dotenv
+import asyncio
+import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-load_dotenv()
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from rfnry_chat_client import ChatClient
+from rfnry_chat_protocol import TextPart, UserIdentity
 
-import asyncio  # noqa: E402
-import os  # noqa: E402
-from collections.abc import AsyncGenerator  # noqa: E402
-from contextlib import asynccontextmanager  # noqa: E402
-
-from fastapi import FastAPI, HTTPException  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
-from rfnry_chat_client import ChatClient  # noqa: E402
-from rfnry_chat_protocol import TextPart, UserIdentity  # noqa: E402
-
-from src.agent import IDENTITY, register  # noqa: E402
+from src.agent import IDENTITY, register
 
 CHAT_SERVER_URL = os.environ.get("CHAT_SERVER_URL", "http://127.0.0.1:8000")
 PORT = int(os.environ.get("PORT", "9100"))

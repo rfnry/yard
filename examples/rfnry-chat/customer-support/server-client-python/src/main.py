@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from dotenv import load_dotenv
+import asyncio
+import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-load_dotenv()
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from rfnry_chat_server import InMemoryChatStore
 
-import asyncio  # noqa: E402
-import os  # noqa: E402
-from collections.abc import AsyncGenerator  # noqa: E402
-from contextlib import asynccontextmanager  # noqa: E402
-
-from fastapi import FastAPI  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from rfnry_chat_server import InMemoryChatStore  # noqa: E402
-
-from src.agent import create_chat_client  # noqa: E402
-from src.chat import create_chat_server  # noqa: E402
+from src.agent import create_chat_client
+from src.chat import create_chat_server
 
 PORT = int(os.environ.get("PORT", "8000"))
 
@@ -38,7 +34,7 @@ app.state.chat_server = chat_server
 app.include_router(chat_server.router, prefix="/chat")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:4173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

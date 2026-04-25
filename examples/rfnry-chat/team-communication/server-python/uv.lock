@@ -662,7 +662,6 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
-    { name = "python-dotenv" },
     { name = "rfnry-chat-protocol" },
     { name = "rfnry-chat-server" },
     { name = "uvicorn", extra = ["standard"] },
@@ -680,7 +679,6 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.20.1" },
     { name = "poethepoet", marker = "extra == 'dev'", specifier = ">=0.44.0" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "rfnry-chat-protocol", editable = "../../../../../types/packages/chat-python" },
     { name = "rfnry-chat-server", editable = "../../../../../chat/packages/server-python" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.11" },

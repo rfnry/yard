@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from dotenv import load_dotenv
+import os
 
-load_dotenv()
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from rfnry_chat_server import InMemoryChatStore
 
-import os  # noqa: E402
-
-from fastapi import FastAPI  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from rfnry_chat_server import InMemoryChatStore  # noqa: E402
-
-from src.chat import create_chat_server  # noqa: E402
+from src.chat import create_chat_server
 
 PORT = int(os.environ.get("PORT", "8000"))
 

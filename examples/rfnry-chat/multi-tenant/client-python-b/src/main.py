@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from dotenv import load_dotenv
+import asyncio
+import os
 
-load_dotenv()
+from rfnry_chat_client import ChatClient
 
-import asyncio  # noqa: E402
-import os  # noqa: E402
-
-from rfnry_chat_client import ChatClient  # noqa: E402
-
-from src.agent import IDENTITY, register  # noqa: E402
+from src.agent import IDENTITY, register
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 
