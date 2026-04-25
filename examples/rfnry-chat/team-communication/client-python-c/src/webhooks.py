@@ -73,6 +73,7 @@ def register(app: FastAPI, client: ChatClient) -> None:
             audience="channel",
             addressee_name=body.requested_by.name,
             mention_inline=True,
+            addressee_id=body.requested_by.id,
         )
         print(
             f"{IDENTITY.name} pinged channel={body.channel_id} "
@@ -94,6 +95,7 @@ def register(app: FastAPI, client: ChatClient) -> None:
             audience="direct DM",
             addressee_name=body.user_name,
             mention_inline=False,
+            addressee_id=body.requested_by.id,
         )
         print(
             f"{IDENTITY.name} pinged direct user={body.user_id} "

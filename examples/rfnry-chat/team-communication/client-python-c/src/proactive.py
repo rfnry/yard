@@ -20,6 +20,7 @@ async def stream_proactive_message(
     audience: str,
     addressee_name: str,
     mention_inline: bool,
+    addressee_id: str | None = None,
 ) -> str:
     """Post a proactively-composed message into ``thread_id``.
 
@@ -42,6 +43,10 @@ async def stream_proactive_message(
     mention_inline:
         ``True`` for channel pings (``@name`` mention), ``False`` for DMs
         (address once by name, no mention).
+    addressee_id:
+        Identity id of the addressee. When ``audience == "channel"``, sets
+        ``recipients=[addressee_id]`` on the stream so other agents stay
+        silent while the pinged user can still see the deltas.
 
     Returns
     -------
@@ -69,6 +74,10 @@ async def stream_proactive_message(
         f"Stay in character. Don't double-greet. {addressing}"
     )
 
+    # Channel pings route the final event to the specific addressee so other
+    # agents don't react. Deltas remain visible to all room members.
+    recipients = [addressee_id] if audience == "channel" and addressee_id else None
+
     run_id = await client.begin_run(thread_id)
     try:
         send = HandlerSend(
@@ -77,7 +86,7 @@ async def stream_proactive_message(
             client=client,
             run_id=run_id,
         )
-        stream = send.message_stream()
+        stream = send.message_stream(recipients=recipients)
         async with stream as s:
             async with anthropic.messages.stream(
                 model=provider.ANTHROPIC_MODEL,
