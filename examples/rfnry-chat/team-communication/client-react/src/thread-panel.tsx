@@ -1,6 +1,5 @@
 import {
   type Identity,
-  parseMemberMentions,
   type Thread,
   type UserIdentity,
   useThreadActions,
@@ -10,7 +9,8 @@ import {
   useThreadSession,
 } from '@rfnry/chat-client-react'
 import { useCallback, useState } from 'react'
-import { buttonCls, EventFeed, inputCls } from './ui'
+import { ComposerForm } from './composer'
+import { EventFeed } from './ui'
 
 type Props = {
   identity: UserIdentity
@@ -41,26 +41,21 @@ export function ThreadPanel({ identity, threadId }: Props) {
   const { send } = useThreadActions(threadId)
   const members = useThreadMembers(threadId)
   const thread = useThreadMetadata(threadId)
-  const [text, setText] = useState('')
 
   const [showRunEvents, setShowRunEvents] = useState(true)
   const kind = (thread?.metadata as { kind?: string } | undefined)?.kind
   const isChannel = kind === 'channel'
 
-  const submit = useCallback(() => {
-    if (!threadId) return
-    const trimmed = text.trim()
-    if (!trimmed) return
-    const mentions = isChannel
-      ? parseMemberMentions(trimmed, members, { roles: ['assistant'] })
-      : { recipients: [], spans: [] }
-    void send({
-      clientId: crypto.randomUUID(),
-      content: [{ type: 'text', text: trimmed }],
-      ...(mentions.recipients.length > 0 ? { recipients: mentions.recipients } : {}),
-    })
-    setText('')
-  }, [send, text, threadId, members, isChannel])
+  const onSubmitText = useCallback(
+    (trimmed: string) => {
+      if (!threadId) return
+      void send({
+        clientId: crypto.randomUUID(),
+        content: [{ type: 'text', text: trimmed }],
+      })
+    },
+    [send, threadId]
+  )
 
   if (!threadId) {
     return (
@@ -97,23 +92,11 @@ export function ThreadPanel({ identity, threadId }: Props) {
       </header>
       <EventFeed threadId={threadId} members={members} showRunEvents={showRunEvents} />
       {isWorking && <div className="text-neutral-500 text-xs">assistant is working…</div>}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          submit()
-        }}
-        className="flex gap-2"
-      >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Say something…"
-          className={inputCls}
-        />
-        <button type="submit" className={buttonCls}>
-          send
-        </button>
-      </form>
+      <ComposerForm
+        members={members.filter((m) => m.role === 'assistant')}
+        isChannel={isChannel}
+        onSubmit={onSubmitText}
+      />
     </section>
   )
 }

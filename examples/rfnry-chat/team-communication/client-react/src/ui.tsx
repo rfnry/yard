@@ -48,16 +48,18 @@ export function EventFeed({ threadId, members, showRunEvents = true }: EventFeed
 function renderTextWithMentions(text: string, members: Identity[]): React.ReactNode[] {
   const { spans } = parseMemberMentions(text, members)
   if (!spans.length) return [text]
+  const byId = new Map(members.map((m) => [m.id, m]))
   const parts: React.ReactNode[] = []
   let cursor = 0
   for (const span of spans) {
     if (span.start > cursor) parts.push(text.slice(cursor, span.start))
+    const display = byId.get(span.identityId)?.name ?? span.identityId
     parts.push(
       <span
         key={`${span.start}-${span.identityId}`}
         className="text-blue-400 bg-blue-500/10 px-1 rounded"
       >
-        @{span.text}
+        @{display}
       </span>
     )
     cursor = span.start + span.length
