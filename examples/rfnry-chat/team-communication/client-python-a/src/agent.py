@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import sys
-
-from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend, parse_member_mentions
+from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend
 from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
@@ -16,11 +14,17 @@ PERSONA_PROMPT = (
     "busy but cares — short, no fluff, action-oriented. Avoid emojis. "
     "When you proactively reach out (via a webhook-triggered ping), briefly "
     "state what's on your mind and invite a reply."
-    "\n\nWhen replying in a channel, ALWAYS begin your message with @<name> "
-    "to address the right teammate (the user who pinged you, or another "
-    "agent if you're handing off the conversation). The system uses this "
-    "prefix to route the message — without it, the reply has no recipient "
-    "and the system will fall back to replying to whoever pinged you."
+    "\n\n"
+    "When you want to address a teammate directly in a channel, write "
+    "@<their handle> somewhere in your message. The system reads the @<handle> "
+    "tokens and routes the message to those teammates.\n"
+    "\n"
+    "Available teammates and their handles:\n"
+    "  - @engineer (you)\n"
+    "  - @coordinator (Release Coordinator)\n"
+    "  - @liaison (Support Liaison)\n"
+    "  - User handles look like u_<id> — match the @<handle> the user used "
+    "when pinging you, or omit and the system will route to whoever pinged.\n"
 )
 
 SUBJECTS: list[str] = [
@@ -43,7 +47,6 @@ def register(client: ChatClient) -> None:
 
     @client.on_message(lazy_run=True)
     async def respond(ctx: HandlerContext, send: HandlerSend):
-
         if ctx.event.author.role != "user":
             return
 
@@ -72,58 +75,14 @@ def register(client: ChatClient) -> None:
             )
             return
 
-        members_page = await client.rest.list_members(ctx.event.thread_id) if is_channel else []
-        members = [m.identity for m in members_page] if is_channel else []
-        fallback_recipients = [ctx.event.author.id] if is_channel else None
+        recipients = [ctx.event.author.id] if is_channel else None
 
-        async with anthropic.messages.stream(
-            model=provider.ANTHROPIC_MODEL,
-            max_tokens=provider.ANTHROPIC_MAX_TOKENS,
-            system=PERSONA_PROMPT,
-            messages=messages,
-        ) as model_stream:
-            head_buffer = ""
-            decided = False
-            recipients: list[str] | None = None
-            visible_head = ""
-            BUFFER_LIMIT = 64
-
-            stream_cm = None
-            stream = None
-            try:
+        async with send.message_stream(recipients=recipients) as stream:
+            async with anthropic.messages.stream(
+                model=provider.ANTHROPIC_MODEL,
+                max_tokens=provider.ANTHROPIC_MAX_TOKENS,
+                system=PERSONA_PROMPT,
+                messages=messages,
+            ) as model_stream:
                 async for token in model_stream.text_stream:
-                    if not decided:
-                        head_buffer += token
-                        stripped = head_buffer.lstrip()
-
-                        if is_channel:
-                            parsed = parse_member_mentions(stripped, members)
-                            if parsed.recipients:
-                                recipients = parsed.recipients
-                                visible_head = parsed.body
-                                decided = True
-                            elif len(stripped) >= BUFFER_LIMIT or (stripped and not stripped.startswith("@")):
-                                recipients = fallback_recipients
-                                visible_head = head_buffer
-                                decided = True
-                        else:
-                            recipients = None
-                            visible_head = head_buffer
-                            decided = True
-
-                        if decided:
-                            stream_cm = send.message_stream(recipients=recipients)
-                            stream = await stream_cm.__aenter__()
-                            if visible_head:
-                                await stream.write(visible_head)
-
-                        continue
-
                     await stream.write(token)
-
-                if not decided:
-                    return
-            finally:
-                if stream_cm is not None:
-                    exc_info = sys.exc_info()
-                    await stream_cm.__aexit__(*exc_info)
