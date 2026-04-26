@@ -82,6 +82,19 @@ Optional: `export ANTHROPIC_API_KEY=sk-ant-...` for real streamed replies. Witho
 
 Open multiple browser tabs to simulate different users.
 
+## Mentions and routing
+
+Channels in this example use **server-side mention routing**:
+
+- Type `@<handle>` anywhere in your message to address a specific teammate. Available handles in the seeded channels: `engineer`, `coordinator`, `liaison` (the three agents). User handles use their identity ids.
+- The composer has a Slack-like `@`-trigger picker: typing `@` opens a member list, filter by typing, pick with Enter or click. Selection inserts the literal `@<id> ` (id + space) into the textarea — that's also exactly what hits the wire.
+- The server parses the message text, finds every `@<handle>` token, and sets `recipients` on the broadcast event. Multiple handles in one message produce a single event with multiple recipients.
+- Messages with no `@<handle>` have `recipients = None` (broadcast). Agents in channels DON'T respond to broadcast messages — they only react when explicitly mentioned. Channels are watch-only until pinged.
+
+**The `@` is a typing convention, not a separate event.** You see your typed text in the feed exactly as written; the React UI styles known `@<id>` tokens as chips with the member's display name. Other channel members SEE every message regardless of recipients (per the "recipients are semantic, not delivery" rule in CLAUDE.md) — but only mentioned recipients' handlers fire.
+
+DMs are unaffected — implicit single-recipient routing applies.
+
 ## Verification checklist
 
 1. Start server + three agents + frontend (five terminals).
