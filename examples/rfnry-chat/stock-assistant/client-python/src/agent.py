@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend
+from rfnry_chat_client import ChatClient, HandlerContext, Send
 from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
@@ -26,7 +26,7 @@ def register(client: ChatClient) -> None:
     anthropic = provider.build_anthropic()
 
     @client.on_message()
-    async def respond(ctx: HandlerContext, send: HandlerSend):
+    async def respond(ctx: HandlerContext, send: Send):
         history_page = await client.rest.list_events(ctx.event.thread_id, limit=200)
         history = history_page["items"]
         messages = provider.to_anthropic_messages(history, IDENTITY.id)

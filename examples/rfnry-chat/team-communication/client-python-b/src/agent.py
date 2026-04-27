@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from rfnry_chat_client import ChatClient, HandlerContext, HandlerSend
+from rfnry_chat_client import ChatClient, HandlerContext, Send
 from rfnry_chat_protocol import AssistantIdentity, TextPart
 
 from src import provider
@@ -46,7 +46,7 @@ def register(client: ChatClient) -> None:
     anthropic = provider.build_anthropic()
 
     @client.on_message(lazy_run=True)
-    async def respond(ctx: HandlerContext, send: HandlerSend):
+    async def respond(ctx: HandlerContext, send: Send):
         if ctx.event.author.role != "user":
             return
 

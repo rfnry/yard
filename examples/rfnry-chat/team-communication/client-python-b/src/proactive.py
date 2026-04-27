@@ -3,8 +3,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from rfnry_chat_client.handler.send import HandlerSend
-from rfnry_chat_protocol import RunError, TextPart
+from rfnry_chat_protocol import TextPart
 
 from src import provider
 from src.agent import IDENTITY, PERSONA_PROMPT, SUBJECTS
@@ -22,7 +21,6 @@ async def stream_proactive_message(
     mention_inline: bool,
     addressee_id: str | None = None,
 ) -> str:
-
     subject = random.choice(SUBJECTS)
     anthropic = provider.build_anthropic()
 
@@ -46,16 +44,8 @@ async def stream_proactive_message(
 
     recipients = [addressee_id] if audience == "channel" and addressee_id else None
 
-    run_id = await client.begin_run(thread_id)
-    try:
-        send = HandlerSend(
-            thread_id=thread_id,
-            author=IDENTITY,
-            client=client,
-            run_id=run_id,
-        )
-        stream = send.message_stream(recipients=recipients)
-        async with stream as s:
+    async with client.send(thread_id) as send:
+        async with send.message_stream(recipients=recipients) as stream:
             async with anthropic.messages.stream(
                 model=provider.ANTHROPIC_MODEL,
                 max_tokens=512,
@@ -63,13 +53,6 @@ async def stream_proactive_message(
                 messages=[{"role": "user", "content": user_prompt}],
             ) as model_stream:
                 async for token in model_stream.text_stream:
-                    await s.write(token)
-        await client.end_run(run_id)
-    except Exception as exc:
-        await client.end_run(
-            run_id,
-            error=RunError(code="ping_failed", message=str(exc)),
-        )
-        raise
+                    await stream.write(token)
 
     return subject
