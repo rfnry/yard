@@ -473,7 +473,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rfnry-examples-backend"
+name = "rfnry-example-marketplace-assistant-data-backend"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [

@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from src.marketplace_assistant import services
+from src import services
 
-router = APIRouter(tags=["marketplace-assistant"])
+router = APIRouter()
+
+
+@router.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @router.get("/catalog/{sku}")

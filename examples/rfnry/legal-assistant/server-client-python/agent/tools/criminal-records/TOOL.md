@@ -4,7 +4,7 @@ description: Criminal-record history for a person id. Returns a list of records 
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/legal-assistant/criminal-records/{input.person_id}
+  url: http://127.0.0.1:8203/criminal-records/{input.person_id}
   timeout: 10
 input:
   person_id:

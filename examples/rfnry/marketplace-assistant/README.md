@@ -6,7 +6,14 @@ current state of our catalog, stock, orders, shipping, payments,
 promotions, and recent sales" — straightforward lookups, not
 analysis or recommendations.
 
-The assistant calls the mock backend on port `8200` for all data.
+## Layout
+
+```
+marketplace-assistant/
+├── server-client-python/   the rfnry Agent + FastAPI server    (port 8103)
+├── data-backend/           mock data the agent's tools call     (port 8202)
+└── docker-compose.yml      brings up both services
+```
 
 ## Run with Docker Compose
 
@@ -15,12 +22,23 @@ docker compose up -d
 docker compose logs -f
 ```
 
-Service: `agent` (port `8103`). Requires `backend` (port `8200`).
+## Run native (no docker)
+
+Two terminals:
+
+```bash
+# terminal 1
+cd data-backend && uv sync --extra dev && uv run poe dev      # 8202
+
+# terminal 2
+cd server-client-python && cp .env.example .env && uv sync --extra dev && uv run poe dev   # 8103
+```
 
 ## Endpoints
 
 ```
-POST /turn       { "session_id":"...", "message":"...", "task":"team-lookup" }
-POST /resume     { "session_id":"..." }
-GET  /health
+agent          POST /turn       { "session_id":"...", "message":"...", "task":"team-lookup" }
+               POST /resume     { "session_id":"..." }
+               GET  /health
+data-backend   GET /catalog/{sku}, /stock/{sku}, /sales-summary?period=…   (see data-backend/README.md)
 ```

@@ -4,7 +4,7 @@ description: Current inventory for a SKU. Returns on_hand, reserved, available, 
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/marketplace-assistant/stock/{input.sku}
+  url: http://127.0.0.1:8202/stock/{input.sku}
   timeout: 10
 input:
   sku:

@@ -4,7 +4,7 @@ description: Look up a payment record by payment id. Returns payment method, sta
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/support-assistant/payments/{input.payment_id}
+  url: http://127.0.0.1:8201/payments/{input.payment_id}
   timeout: 10
 input:
   payment_id:

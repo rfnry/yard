@@ -1,7 +1,7 @@
 [project]
-name = "rfnry-examples-backend"
+name = "rfnry-example-legal-assistant-data-backend"
 version = "0.0.1"
-description = "Mock backend serving deterministic data to the rfnry agent examples' tool calls"
+description = "Mock data backend for the legal-assistant example — public-records lookups (identity, criminal, court, property, business, employment)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.136.0",

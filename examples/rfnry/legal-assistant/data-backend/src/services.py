@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.legal_assistant.data import (
+from src.data import (
     BUSINESS_REGISTRY,
     COURT_RECORDS,
     CRIMINAL_RECORDS,

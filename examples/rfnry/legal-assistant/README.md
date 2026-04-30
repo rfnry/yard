@@ -27,6 +27,15 @@ gets `ScopeError` raised before the filesystem call is made.
 The agent itself doesn't need a "do not cross cases" instruction —
 the kernel of the engine enforces it.
 
+## Layout
+
+```
+legal-assistant/
+├── server-client-python/   the rfnry Agent + FastAPI server    (port 8102)
+├── data-backend/           mock public-records lookups          (port 8203)
+└── docker-compose.yml      brings up both services
+```
+
 ## Run with Docker Compose
 
 ```bash
@@ -34,12 +43,22 @@ docker compose up -d
 docker compose logs -f
 ```
 
-Service: `agent` (port `8102`). Requires `backend` (port `8200`).
+## Run native (no docker)
+
+```bash
+# terminal 1
+cd data-backend && uv sync --extra dev && uv run poe dev      # 8203
+
+# terminal 2
+cd server-client-python && cp .env.example .env && uv sync --extra dev && uv run poe dev   # 8102
+```
 
 ## Endpoints
 
 ```
-POST /turn       { "session_id":"...", "case_id":"...", "message":"...", "task":"investigate" }
-POST /resume     { "session_id":"...", "case_id":"..." }
-GET  /health
+agent          POST /turn       { "session_id":"...", "case_id":"...", "message":"...", "task":"investigate" }
+               POST /resume     { "session_id":"...", "case_id":"..." }
+               POST /consolidate { "case_id":"...", "task":"investigate" }
+               GET  /health
+data-backend   GET /identity/{person_id}, /criminal-records/{person_id}, ... (see data-backend/README.md)
 ```

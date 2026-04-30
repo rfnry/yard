@@ -4,7 +4,7 @@ description: Search the catalog by free-text query (matches part name or model c
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/support-assistant/catalog?q={input.query}
+  url: http://127.0.0.1:8201/catalog?q={input.query}
   timeout: 10
 input:
   query:

@@ -4,7 +4,7 @@ description: Look up a single catalog part by part id. Returns part name, model 
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/support-assistant/catalog/{input.part_id}
+  url: http://127.0.0.1:8201/catalog/{input.part_id}
   timeout: 10
 input:
   part_id:

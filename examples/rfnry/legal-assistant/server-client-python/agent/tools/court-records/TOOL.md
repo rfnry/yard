@@ -4,7 +4,7 @@ description: Court case record by case number. Returns court, case_type, filed_a
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/legal-assistant/court-records/{input.case_number}
+  url: http://127.0.0.1:8203/court-records/{input.case_number}
   timeout: 10
 input:
   case_number:

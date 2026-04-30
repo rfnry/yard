@@ -4,7 +4,7 @@ description: Look up a customer profile by customer id. Returns name, email, tie
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/support-assistant/customers/{input.customer_id}
+  url: http://127.0.0.1:8201/customers/{input.customer_id}
   timeout: 10
 input:
   customer_id:

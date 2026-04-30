@@ -4,7 +4,7 @@ description: Look up a product by SKU. Returns name, category, price, and msrp.
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/marketplace-assistant/catalog/{input.sku}
+  url: http://127.0.0.1:8202/catalog/{input.sku}
   timeout: 10
 input:
   sku:

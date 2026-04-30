@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from src.legal_assistant import services
+from src import services
 
-router = APIRouter(tags=["legal-assistant"])
+router = APIRouter()
+
+
+@router.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @router.get("/identity/{person_id}")

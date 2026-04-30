@@ -4,7 +4,7 @@ description: List the orders associated with a single customer id. Returns an ar
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/support-assistant/orders/by-customer/{input.customer_id}
+  url: http://127.0.0.1:8201/orders/by-customer/{input.customer_id}
   timeout: 10
 input:
   customer_id:

@@ -4,7 +4,7 @@ description: Tracking status by tracking id. Returns carrier, status, last_scan_
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/marketplace-assistant/shipping/{input.tracking_id}
+  url: http://127.0.0.1:8202/shipping/{input.tracking_id}
   timeout: 10
 input:
   tracking_id:

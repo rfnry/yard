@@ -1,13 +1,6 @@
 from __future__ import annotations
 
-from src.support_assistant.data import (
-    CATALOG_PARTS,
-    CUSTOMERS,
-    ORDERS,
-    PAYMENTS,
-    SHIPMENTS,
-    fallback_part,
-)
+from src.data import CATALOG_PARTS, CUSTOMERS, ORDERS, PAYMENTS, SHIPMENTS, fallback_part
 
 
 def get_part(part_id: str) -> dict[str, object]:

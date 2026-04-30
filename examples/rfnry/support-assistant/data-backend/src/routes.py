@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from src.support_assistant import services
+from src import services
 
-router = APIRouter(tags=["support-assistant"])
+router = APIRouter()
+
+
+@router.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @router.get("/catalog/{part_id}")
@@ -27,7 +32,10 @@ async def get_order(order_id: str) -> dict[str, object]:
 
 @router.get("/orders/by-customer/{customer_id}")
 async def list_orders_for_customer(customer_id: str) -> dict[str, object]:
-    return {"customer_id": customer_id.upper(), "orders": services.list_orders_for_customer(customer_id)}
+    return {
+        "customer_id": customer_id.upper(),
+        "orders": services.list_orders_for_customer(customer_id),
+    }
 
 
 @router.get("/shipping/{tracking_id}")

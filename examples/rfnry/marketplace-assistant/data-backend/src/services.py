@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.marketplace_assistant.data import (
+from src.data import (
     CATALOG,
     ORDERS,
     PAYMENTS,

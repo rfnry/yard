@@ -4,7 +4,7 @@ description: Government identity record by person id. Returns full name, DOB, ad
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/legal-assistant/identity/{input.person_id}
+  url: http://127.0.0.1:8203/identity/{input.person_id}
   timeout: 10
 input:
   person_id:

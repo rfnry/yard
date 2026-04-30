@@ -4,7 +4,7 @@ description: Look up an order by id. Returns channel (web|amazon|wholesale), sku
 executor: http
 config:
   method: GET
-  url: http://127.0.0.1:8200/marketplace-assistant/orders/{input.order_id}
+  url: http://127.0.0.1:8202/orders/{input.order_id}
   timeout: 10
 input:
   order_id:
