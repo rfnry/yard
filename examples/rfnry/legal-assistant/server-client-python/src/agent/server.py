@@ -7,7 +7,7 @@ from anthropic import AsyncAnthropic
 from rfnry import Agent, RefiningConfig
 from rfnry.providers.anthropic import AnthropicProvider
 
-AGENT_ROOT: Path = Path(__file__).resolve().parent.parent / "agent"
+AGENT_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agent"
 
 agent = Agent(
     root=AGENT_ROOT,

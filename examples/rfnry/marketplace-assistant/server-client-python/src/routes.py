@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
-from src import services
+from src.agent import run_resume, run_turn
 
 
 class TurnRequest(BaseModel):
@@ -25,7 +25,7 @@ def register(app: FastAPI) -> None:
     @app.post("/turn")
     async def turn(req: TurnRequest, request: Request) -> dict[str, str]:
         try:
-            reply = await services.run_turn(
+            reply = await run_turn(
                 request.app.state.agent,
                 session_id=req.session_id,
                 message=req.message,
@@ -38,7 +38,7 @@ def register(app: FastAPI) -> None:
 
     @app.post("/resume")
     async def resume(req: ResumeRequest, request: Request) -> dict[str, str]:
-        reply = await services.run_resume(
+        reply = await run_resume(
             request.app.state.agent,
             session_id=req.session_id,
             scope={},

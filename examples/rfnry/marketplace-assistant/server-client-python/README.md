@@ -1,26 +1,36 @@
 # marketplace-assistant — server
 
-Layers:
-
-- `src/main.py` — HTTP infrastructure (FastAPI, CORS, uvicorn).
-- `src/app.py` — module-level `agent` binding (agent root +
-  `rfnry.Agent` constructed at import time with an inline
-  `AnthropicProvider` from `ANTHROPIC_API_KEY`).
-- `src/routes.py` — `POST /turn`, `POST /resume`, `GET /health`.
-  HTTP-only: Pydantic models, FastAPI binding, HTTPException shaping.
-- `src/services/` — agent orchestration (`run_turn`, `run_resume`).
-  Pure async functions; no FastAPI imports.
-
-Agent tree at `agent/`:
+Layout:
 
 ```
-agent/
-  AGENT.md INDEX.md
-  rules/
-  skills/
-  tools/         catalog, stock, orders, shipping, payments, promotions, sales-summary
-  tasks/team-lookup.md
+server-client-python/
+├── agent/              the markdown tree the model navigates (AGENT.md, rules/, skills/, tools/, tasks/)
+└── src/
+    ├── main.py         FastAPI infra
+    ├── routes.py       HTTP routes — Pydantic + HTTP↔agent.* binding
+    └── agent/          the Python application layer
+        ├── server.py   `agent = Agent(...)` — module-level binding
+        ├── turn.py     run_turn
+        └── resume.py   run_resume
 ```
+
+Two things named `agent/` here, two different things:
+
+- `server-client-python/agent/` — the **markdown tree the model
+  navigates** (AGENT.md, rules/, skills/, tools/ — catalog, stock,
+  orders, shipping, payments, promotions, sales-summary —
+  tasks/team-lookup.md). Edit on GitHub; no Python required to
+  author.
+- `server-client-python/src/agent/` — the **Python application
+  layer** that wraps the engine. `server.py` builds the
+  `rfnry.Agent` (with inline `AnthropicProvider` from
+  `ANTHROPIC_API_KEY`, required); `turn.py` / `resume.py` orchestrate
+  per-request flows; `__init__.py` re-exports `run_turn` and
+  `run_resume` so `routes.py` calls them directly.
+
+`src/main.py` is HTTP infra only (FastAPI, CORS, uvicorn). `src/routes.py`
+is Pydantic models + HTTPException shaping; the route bodies just await
+`run_turn` / `run_resume`.
 
 `ANTHROPIC_API_KEY` is required to start the server — there is no
 stub fallback. Boot raises `KeyError` if it is unset.

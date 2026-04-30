@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src import routes
-from src.app import AGENT_ROOT, agent
+from src.agent.server import AGENT_ROOT, agent
 
 PORT = int(os.environ.get("PORT", "8103"))
 

@@ -1,30 +1,35 @@
 # support-assistant — server
 
-Layers:
-
-- `src/main.py` — HTTP infrastructure. FastAPI app, CORS, uvicorn,
-  route registration. No agent code here.
-- `src/app.py` — module-level `agent` binding. Resolves the agent
-  root and constructs the `rfnry.Agent` (with inline
-  `AnthropicProvider` from `ANTHROPIC_API_KEY`, required) at import
-  time. `main.py` wires it into `app.state`.
-- `src/routes.py` — HTTP handlers (Pydantic models, FastAPI binding,
-  HTTPException shaping). No `await agent.X` lives here.
-- `src/services/` — agent orchestration (`run_turn`, `run_resume`).
-  Pure async functions; no FastAPI imports. Routes call into
-  `services.run_*`.
-
-The agent's markdown tree lives at `agent/`:
+Layout:
 
 ```
-agent/
-  AGENT.md INDEX.md
-  rules/      one rule per file
-  knowledge/         warranty / replacement / refund policies
-  skills/            triggerable procedures (warped-part flow, return flow…)
-  tools/             declarative HTTP tools pointing at http://127.0.0.1:8201
-  tasks/resolve-customer-issue.md
+server-client-python/
+├── agent/              the markdown tree the model navigates (AGENT.md, rules/, skills/, tools/, tasks/)
+└── src/
+    ├── main.py         FastAPI infra
+    ├── routes.py       HTTP routes — Pydantic + HTTP↔agent.* binding
+    └── agent/          the Python application layer
+        ├── server.py   `agent = Agent(...)` — module-level binding
+        ├── turn.py     run_turn
+        └── resume.py   run_resume
 ```
+
+Two things named `agent/` here, two different things:
+
+- `server-client-python/agent/` — the **markdown tree the model
+  navigates** (AGENT.md, rules/, knowledge/, skills/, tools/,
+  tasks/resolve-customer-issue.md). Edit on GitHub; no Python
+  required to author.
+- `server-client-python/src/agent/` — the **Python application
+  layer** that wraps the engine. `server.py` builds the
+  `rfnry.Agent` (with inline `AnthropicProvider` from
+  `ANTHROPIC_API_KEY`, required); `turn.py` / `resume.py` orchestrate
+  per-request flows; `__init__.py` re-exports `run_turn` and
+  `run_resume` so `routes.py` calls them directly.
+
+`src/main.py` is HTTP infra only (FastAPI, CORS, uvicorn). `src/routes.py`
+is Pydantic models + HTTPException shaping; the route bodies just await
+`run_turn` / `run_resume`.
 
 `ANTHROPIC_API_KEY` is required to start the server — there is no
 stub fallback. Boot raises `KeyError` if it is unset.

@@ -1,17 +1,37 @@
 # legal-assistant — server
 
-Layers:
+Layout:
 
-- `src/main.py` — FastAPI bootstrap (HTTP infra only).
-- `src/app.py` — module-level `agent` binding (agent root +
-  `rfnry.Agent` constructed at import time with an inline
-  `AnthropicProvider` from `ANTHROPIC_API_KEY`, required — boot
-  raises `KeyError` if unset).
-- `src/routes.py` — `POST /turn`, `POST /resume`, `POST /consolidate`,
-  `GET /health`. HTTP-only: Pydantic models, FastAPI binding,
-  HTTPException shaping.
-- `src/services/` — agent orchestration (`run_turn`, `run_resume`,
-  `run_consolidate`). Pure async functions; no FastAPI imports.
+```
+server-client-python/
+├── agent/              the markdown tree the model navigates (AGENT.md, rules/, skills/, tools/, tasks/)
+└── src/
+    ├── main.py         FastAPI infra
+    ├── routes.py       HTTP routes — Pydantic + HTTP↔agent.* binding
+    └── agent/          the Python application layer
+        ├── server.py   `agent = Agent(...)` — module-level binding
+        ├── turn.py     run_turn
+        ├── resume.py   run_resume
+        └── consolidate.py  run_consolidate
+```
+
+Two things named `agent/` here, two different things:
+
+- `server-client-python/agent/` — the **markdown tree the model
+  navigates** (AGENT.md, rules/, skills/, tools/, tasks/). Edit on
+  GitHub; no Python required to author.
+- `server-client-python/src/agent/` — the **Python application
+  layer** that wraps the engine. `server.py` builds the
+  `rfnry.Agent` (with inline `AnthropicProvider` from
+  `ANTHROPIC_API_KEY`, required — boot raises `KeyError` if unset);
+  `turn.py` / `resume.py` / `consolidate.py` orchestrate
+  per-request flows; `__init__.py` re-exports `run_turn`,
+  `run_resume`, and `run_consolidate` so `routes.py` calls them
+  directly.
+
+`src/main.py` is HTTP infra only (FastAPI, CORS, uvicorn). `src/routes.py`
+is Pydantic models + HTTPException shaping for `POST /turn`,
+`POST /resume`, `POST /consolidate`, `GET /health`.
 
 The agent declares `namespaces=["case_id"]`. Every request supplies
 a `case_id` in the body, which rfnry validates into a single-segment
