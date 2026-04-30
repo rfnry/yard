@@ -1,9 +1,4 @@
-import {
-  ChatProvider,
-  type Event,
-  type UserIdentity,
-  useChatHandlers,
-} from '@rfnry/chat-client-react'
+import { ChatProvider, type UserIdentity, useChatHandlers } from '@rfnry/chat-client-react'
 import { useEffect, useMemo, useState } from 'react'
 import { PingControl } from './ping-control'
 import { Sidebar } from './sidebar'
@@ -69,7 +64,7 @@ export function App() {
         }
       >
         <UnreadProvider value={unread}>
-          <UnreadTracker selfId={identity.id} selectedThreadId={selectedThreadId} />
+          <UnreadTracker selectedThreadId={selectedThreadId} />
           <div className="grid grid-cols-[280px_1fr] gap-4">
             <Sidebar
               identity={identity}
@@ -90,19 +85,14 @@ export function App() {
   )
 }
 
-function UnreadTracker({
-  selfId,
-  selectedThreadId,
-}: {
-  selfId: string
-  selectedThreadId: string | null
-}) {
+function UnreadTracker({ selectedThreadId }: { selectedThreadId: string | null }) {
   const { increment, clear } = useUnread()
   const { on } = useChatHandlers()
 
-  on.anyEvent((event: Event) => {
-    if (event.type !== 'message') return
-    if (event.author.id === selfId) return
+  // on.message default-filters self-authored events and recipient-mismatched
+  // events when client.identity is set, so the only check left is "is this
+  // the thread the user is currently viewing?"
+  on.message((event) => {
     if (event.threadId === selectedThreadId) return
     increment(event.threadId)
   })
