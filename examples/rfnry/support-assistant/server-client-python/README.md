@@ -5,10 +5,10 @@ Two clean layers:
 - `src/main.py` — HTTP infrastructure. FastAPI app, CORS, uvicorn,
   route registration. No agent code here.
 - `src/app.py` — application layer. Builds the `rfnry.Agent`,
-  resolves the agent root, picks the provider, exposes a singleton
-  the routes consume via `app.state`.
+  resolves the agent root, constructs the provider inline from
+  `ANTHROPIC_API_KEY` (required), exposes a singleton the routes
+  consume via `app.state`.
 - `src/routes.py` — HTTP handlers calling `state.agent`.
-- `src/provider.py` — `AnthropicProvider` selection (stub if no key).
 
 The agent's markdown tree lives at `agent/`:
 
@@ -18,9 +18,12 @@ agent/
   instructions/      one rule per file
   knowledge/         warranty / replacement / refund policies
   skills/            triggerable procedures (warped-part flow, return flow…)
-  tools/             declarative HTTP tools pointing at http://127.0.0.1:8200
-  tasks/resolve-customer-issue/
+  tools/             declarative HTTP tools pointing at http://127.0.0.1:8201
+  tasks/resolve-customer-issue.md
 ```
+
+`ANTHROPIC_API_KEY` is required to start the server — there is no
+stub fallback. Boot raises `KeyError` if it is unset.
 
 ## Endpoints
 

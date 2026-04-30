@@ -3,9 +3,9 @@
 Two clean layers:
 
 - `src/main.py` — HTTP infrastructure (FastAPI, CORS, uvicorn).
-- `src/app.py` — application layer (Agent construction, agent root).
+- `src/app.py` — application layer (Agent construction, agent root,
+  inline `AnthropicProvider` from `ANTHROPIC_API_KEY`).
 - `src/routes.py` — `POST /turn`, `POST /resume`, `GET /health`.
-- `src/provider.py` — provider selection.
 
 Agent tree at `agent/`:
 
@@ -15,8 +15,11 @@ agent/
   instructions/
   skills/
   tools/         catalog, stock, orders, shipping, payments, promotions, sales-summary
-  tasks/team-lookup/
+  tasks/team-lookup.md
 ```
+
+`ANTHROPIC_API_KEY` is required to start the server — there is no
+stub fallback. Boot raises `KeyError` if it is unset.
 
 ## Endpoints
 

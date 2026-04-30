@@ -4,4 +4,4 @@
 - [instructions/](instructions/) — behavioral rules
 - [skills/](skills/) — common lookup combos
 - [tools/](tools/) — declarative HTTP tools
-- [tasks/team-lookup/](tasks/team-lookup/) — primary task
+- [tasks/team-lookup.md](tasks/team-lookup.md) — primary task

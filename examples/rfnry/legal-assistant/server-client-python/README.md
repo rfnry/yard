@@ -3,9 +3,10 @@
 Two clean layers:
 
 - `src/main.py` — FastAPI bootstrap (HTTP infra only).
-- `src/app.py` — Agent construction (application layer).
+- `src/app.py` — Agent construction (application layer); the
+  `AnthropicProvider` is built inline from `ANTHROPIC_API_KEY`
+  (required — boot raises `KeyError` if unset).
 - `src/routes.py` — `POST /turn`, `POST /resume`, `GET /health`.
-- `src/provider.py` — provider selection.
 
 The agent declares `namespaces=["case_id"]`. Every request supplies
 a `case_id` in the body, which rfnry validates into a single-segment
@@ -65,7 +66,7 @@ State partitions:
 ```
 data/case-A/sessions/a-1/events.jsonl
 data/case-A/state.db                      # case-A's lessons + reflections
-data/case-A/tasks/investigate/...
+data/case-A/tasks/investigate/...         # per-task accumulator state
 data/case-B/sessions/b-1/events.jsonl
 data/case-B/state.db                      # case-B's lessons + reflections
 data/case-B/tasks/investigate/...

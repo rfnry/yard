@@ -1,5 +1,5 @@
 # Skills
 
-- [witness-profile/SKILL.md](witness-profile/SKILL.md) — full sweep on a person id
-- [credibility-cross-check/SKILL.md](credibility-cross-check/SKILL.md) — check a stated fact (employer, business ownership) against the registry
-- [case-pull/SKILL.md](case-pull/SKILL.md) — fetch a court record by case number + the principal parties' identities
+- [witness-profile.md](witness-profile.md) — full sweep on a person id
+- [credibility-cross-check.md](credibility-cross-check.md) — check a stated fact (employer, business ownership) against the registry
+- [case-pull.md](case-pull.md) — fetch a court record by case number + the principal parties' identities
