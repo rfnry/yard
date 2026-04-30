@@ -5,5 +5,3 @@ __pycache__
 .mypy_cache
 dist
 .env
-data
-fixtures/out

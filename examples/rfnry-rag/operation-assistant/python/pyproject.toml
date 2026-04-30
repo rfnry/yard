@@ -8,12 +8,11 @@ dependencies = [
     "fastapi>=0.136.0",
     "uvicorn[standard]>=0.44.0",
     "python-multipart>=0.0.20",
-    "pydantic>=2.13.2",
-    "fpdf2>=2.8.0",
+    "pydantic>=2.12.5",
 ]
 
 [tool.uv.sources]
-rfnry-rag = { path = "../../../rag/packages/python", editable = true }
+rfnry-rag = { path = "../../../../../rag/packages/python", editable = true }
 
 [project.optional-dependencies]
 dev = [
@@ -47,4 +46,3 @@ format = "ruff format ."
 check = "ruff check ."
 "check:fix" = "ruff check --fix ."
 typecheck = "mypy src"
-"fixtures:gen" = "python -m tools.md_to_pdf"

@@ -5,13 +5,16 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from rfnry_rag import (
+    DocumentIngestion,
+    DocumentRetrieval,
     Embeddings,
     GenerationConfig,
+    GraphIngestion,
+    GraphRetrieval,
     IngestionConfig,
     LanguageModelClient,
     LanguageModelProvider,
     Neo4jGraphStore,
-    PersistenceConfig,
     PostgresDocumentStore,
     QdrantVectorStore,
     QueryMode,
@@ -20,6 +23,8 @@ from rfnry_rag import (
     RetrievalConfig,
     RoutingConfig,
     SQLAlchemyMetadataStore,
+    VectorIngestion,
+    VectorRetrieval,
     Vision,
 )
 from rfnry_rag.config import DrawingIngestionConfig, GraphIngestionConfig
@@ -71,27 +76,47 @@ def _build_config() -> RagEngineConfig:
         )
     )
 
-    persistence = PersistenceConfig(
-        vector_store=QdrantVectorStore(
-            url=os.environ.get("QDRANT_URL", "http://localhost:6333"),
-            collection=os.environ.get("QDRANT_COLLECTION", "operation-assistant"),
-        ),
-        metadata_store=SQLAlchemyMetadataStore(url=_require("POSTGRES_URL")),
-        document_store=PostgresDocumentStore(
-            url=_require("POSTGRES_URL"),
-            schema=os.environ.get("DOCUMENT_STORE_SCHEMA", "operation_documents"),
-        ),
-        graph_store=Neo4jGraphStore(
-            url=os.environ.get("NEO4J_URL", "bolt://localhost:7687"),
-            user=os.environ.get("NEO4J_USER", "neo4j"),
-            password=_require("NEO4J_PASSWORD"),
-        ),
+    vector_store = QdrantVectorStore(
+        url=os.environ.get("QDRANT_URL", "http://localhost:6333"),
+        collection=os.environ.get("QDRANT_COLLECTION", "operation-assistant"),
+    )
+    metadata_store = SQLAlchemyMetadataStore(url=_require("POSTGRES_URL"))
+    document_store = PostgresDocumentStore(url=_require("POSTGRES_URL"))
+    graph_store = Neo4jGraphStore(
+        uri=os.environ.get("NEO4J_URL", "bolt://localhost:7687"),
+        username=os.environ.get("NEO4J_USER", "neo4j"),
+        password=_require("NEO4J_PASSWORD"),
     )
 
+    embedding_model_name = f"openai:{embeddings.model}"
+    graph_ingestion_lm = _generation_client()
+
     ingestion = IngestionConfig(
+        methods=[
+            VectorIngestion(
+                store=vector_store,
+                embeddings=embeddings,
+                embedding_model_name=embedding_model_name,
+            ),
+            DocumentIngestion(store=document_store),
+            GraphIngestion(
+                store=graph_store,
+                lm_client=graph_ingestion_lm,
+                graph_config=GraphIngestionConfig(
+                    relationship_keyword_map={
+                        "connected": "CONNECTS_TO",
+                        "wired": "CONNECTS_TO",
+                        "feeds": "FEEDS",
+                        "controls": "CONTROLLED_BY",
+                        "mounted": "REFERENCES",
+                    },
+                    unclassified_relation_default="MENTIONS",
+                ),
+            ),
+        ],
         embeddings=embeddings,
         vision=vision,
-        lm_client=_generation_client(),
+        lm_client=graph_ingestion_lm,
         chunk_size=375,
         chunk_overlap=40,
         analyze_concurrency=5,
@@ -101,21 +126,20 @@ def _build_config() -> RagEngineConfig:
             dpi=400,
             analyze_concurrency=3,
         ),
-        graph=GraphIngestionConfig(
-            relationship_keyword_map={
-                "connected": "CONNECTED_TO",
-                "wired": "CONNECTED_TO",
-                "feeds": "FEEDS",
-                "controls": "CONTROLS",
-                "mounted": "MOUNTED_ON",
-            },
-            unclassified_relation_default="MENTIONS",
-        ),
     )
 
     retrieval = RetrievalConfig(
+        methods=[
+            VectorRetrieval(
+                store=vector_store,
+                embeddings=embeddings,
+                bm25_enabled=True,
+                weight=1.0,
+            ),
+            DocumentRetrieval(store=document_store, weight=0.8),
+            GraphRetrieval(store=graph_store, weight=0.7),
+        ],
         top_k=8,
-        bm25_enabled=True,
         cross_reference_enrichment=True,
     )
 
@@ -132,7 +156,7 @@ def _build_config() -> RagEngineConfig:
     )
 
     return RagEngineConfig(
-        persistence=persistence,
+        metadata_store=metadata_store,
         ingestion=ingestion,
         retrieval=retrieval,
         generation=generation,
