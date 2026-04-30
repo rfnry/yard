@@ -5,8 +5,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from rfnry_rag import (
+    AnalyzedIngestion,
     DocumentIngestion,
     DocumentRetrieval,
+    DrawingIngestion,
     Embeddings,
     GenerationConfig,
     GraphIngestion,
@@ -90,6 +92,17 @@ def _build_config() -> RagEngineConfig:
 
     embedding_model_name = f"openai:{embeddings.model}"
     graph_ingestion_lm = _generation_client()
+    drawing_lm = _generation_client()
+    graph_ingestion_config = GraphIngestionConfig(
+        relationship_keyword_map={
+            "connected": "CONNECTS_TO",
+            "wired": "CONNECTS_TO",
+            "feeds": "FEEDS",
+            "controls": "CONTROLLED_BY",
+            "mounted": "REFERENCES",
+        },
+        unclassified_relation_default="MENTIONS",
+    )
 
     ingestion = IngestionConfig(
         methods=[
@@ -102,30 +115,35 @@ def _build_config() -> RagEngineConfig:
             GraphIngestion(
                 store=graph_store,
                 lm_client=graph_ingestion_lm,
-                graph_config=GraphIngestionConfig(
-                    relationship_keyword_map={
-                        "connected": "CONNECTS_TO",
-                        "wired": "CONNECTS_TO",
-                        "feeds": "FEEDS",
-                        "controls": "CONTROLLED_BY",
-                        "mounted": "REFERENCES",
-                    },
-                    unclassified_relation_default="MENTIONS",
+                graph_config=graph_ingestion_config,
+            ),
+            AnalyzedIngestion(
+                store=vector_store,
+                embeddings=embeddings,
+                vision=vision,
+                lm_client=graph_ingestion_lm,
+                graph_store=graph_store,
+                embedding_model_name=embedding_model_name,
+                analyze_concurrency=5,
+                graph_config=graph_ingestion_config,
+            ),
+            DrawingIngestion(
+                config=DrawingIngestionConfig(
+                    enabled=True,
+                    lm_client=drawing_lm,
+                    dpi=400,
+                    analyze_concurrency=3,
                 ),
+                store=vector_store,
+                embeddings=embeddings,
+                vision=vision,
+                lm_client=drawing_lm,
+                graph_store=graph_store,
+                embedding_model_name=embedding_model_name,
             ),
         ],
-        embeddings=embeddings,
-        vision=vision,
-        lm_client=graph_ingestion_lm,
         chunk_size=375,
         chunk_overlap=40,
-        analyze_concurrency=5,
-        drawings=DrawingIngestionConfig(
-            enabled=True,
-            lm_client=_generation_client(),
-            dpi=400,
-            analyze_concurrency=3,
-        ),
     )
 
     retrieval = RetrievalConfig(
