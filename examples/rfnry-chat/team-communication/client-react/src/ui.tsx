@@ -1,5 +1,5 @@
 import type { Event } from '@rfnry/chat-client-react'
-import { type Identity, parseMemberMentions, useThreadFeed } from '@rfnry/chat-client-react'
+import { type Identity, parseMemberMentions, useChatTranscript } from '@rfnry/chat-client-react'
 import type React from 'react'
 
 type EventFeedProps = {
@@ -9,7 +9,7 @@ type EventFeedProps = {
 }
 
 export function EventFeed({ threadId, members, showRunEvents = true }: EventFeedProps) {
-  const feed = useThreadFeed(threadId)
+  const feed = useChatTranscript(threadId)
   const filtered = showRunEvents
     ? feed
     : feed.filter((item) => {
@@ -34,10 +34,10 @@ export function EventFeed({ threadId, members, showRunEvents = true }: EventFeed
         }
         return (
           <li
-            key={item.eventId}
+            key={item.item.eventId}
             className="text-neutral-300 border-b border-neutral-900 last:border-0 py-1"
           >
-            <StreamingBubble author={item.author} text={item.text} members={members} />
+            <StreamingBubble author={item.item.author} text={item.item.text} members={members} />
           </li>
         )
       })}

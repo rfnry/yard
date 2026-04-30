@@ -113,4 +113,4 @@ DMs are unaffected — implicit single-recipient routing applies.
   - [`../../../../chat/packages/server-python/src/rfnry_chat_server/server/presence.py`](../../../../chat/packages/server-python/src/rfnry_chat_server/server/presence.py)
   - [`../../../../chat/packages/server-python/src/rfnry_chat_server/broadcast/socketio.py`](../../../../chat/packages/server-python/src/rfnry_chat_server/broadcast/socketio.py)
   - [`../../../../chat/packages/server-python/src/rfnry_chat_server/server/rest/presence.py`](../../../../chat/packages/server-python/src/rfnry_chat_server/server/rest/presence.py)
-  - React hook: [`../../../../chat/packages/client-react/src/hooks/usePresence.ts`](../../../../chat/packages/client-react/src/hooks/usePresence.ts)
+  - React hook: [`../../../../chat/packages/client-react/src/hooks/useChatPresence.ts`](../../../../chat/packages/client-react/src/hooks/useChatPresence.ts)

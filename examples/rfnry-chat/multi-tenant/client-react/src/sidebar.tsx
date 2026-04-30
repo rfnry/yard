@@ -1,11 +1,10 @@
 import {
   type UserIdentity,
   useChatClient,
-  useCreateThread,
+  useChatThreads,
   useQueryClient,
-  useThreads,
 } from '@rfnry/chat-client-react'
-import { useCallback } from 'react'
+import { useCallback, useTransition } from 'react'
 import {
   findOrg,
   ORGANIZATIONS,
@@ -52,18 +51,20 @@ export function Sidebar({
 }: Props) {
   const client = useChatClient()
   const queryClient = useQueryClient()
-  const { data, isLoading } = useThreads({ limit: 50 })
-  const { mutateAsync: createThread, isPending } = useCreateThread()
+  const { data, isLoading } = useChatThreads({ limit: 50 })
+  const [isPending, startTransition] = useTransition()
   const threads = data?.items ?? []
 
-  const handleNewThread = useCallback(async () => {
-    const thread = await createThread({
-      tenant: { organization: org.id, workspace: workspaceId, author: authorId },
-      clientId: crypto.randomUUID(),
+  const handleNewThread = useCallback(() => {
+    startTransition(async () => {
+      const thread = await client.createThread({
+        tenant: { organization: org.id, workspace: workspaceId, author: authorId },
+        clientId: crypto.randomUUID(),
+      })
+      await client.addMember(thread.id, org.agent)
+      onPickThread(thread.id)
     })
-    await client.addMember(thread.id, org.agent)
-    onPickThread(thread.id)
-  }, [authorId, client, createThread, onPickThread, org.agent, org.id, workspaceId])
+  }, [authorId, client, onPickThread, org.agent, org.id, workspaceId])
 
   const handleClear = useCallback(
     (threadId: string) => {
@@ -153,7 +154,7 @@ export function Sidebar({
           <span className="text-neutral-500">threads</span>
           <button
             type="button"
-            onClick={() => void handleNewThread()}
+            onClick={handleNewThread}
             disabled={isPending}
             className={buttonCls}
           >

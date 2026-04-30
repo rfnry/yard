@@ -2,8 +2,8 @@ import {
   type Identity,
   type UserIdentity,
   useChatClient,
-  usePresence,
-  useThreads,
+  useChatPresence,
+  useChatThreads,
 } from '@rfnry/chat-client-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { findOrCreateDm } from './dm'
@@ -18,8 +18,8 @@ type Props = {
 
 export function Sidebar({ identity, serverUrl, selectedThreadId, onPickThread }: Props) {
   const client = useChatClient()
-  const { data: threadPage, isLoading: threadsLoading } = useThreads({ limit: 50 })
-  const presence = usePresence()
+  const { data: threadPage, isLoading: threadsLoading } = useChatThreads({ limit: 50 })
+  const presence = useChatPresence()
   const { counts: unreadCounts } = useUnread()
 
   const allThreads = threadPage?.items ?? []

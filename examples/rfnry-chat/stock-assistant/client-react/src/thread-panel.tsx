@@ -1,8 +1,8 @@
 import {
-  useThreadActions,
-  useThreadEvents,
-  useThreadIsWorking,
-  useThreadSession,
+  useChatClient,
+  useChatHistory,
+  useChatIsWorking,
+  useChatSession,
 } from '@rfnry/chat-client-react'
 import { useCallback, useState } from 'react'
 import { buttonCls, EventFeed, inputCls } from './ui'
@@ -13,23 +13,23 @@ type Props = {
 }
 
 export function ThreadPanel({ threadId, agentId }: Props) {
-  const session = useThreadSession(threadId)
-  const events = useThreadEvents(threadId)
-  const isWorking = useThreadIsWorking(threadId)
-  const { send } = useThreadActions(threadId)
+  const client = useChatClient()
+  const session = useChatSession(threadId)
+  const events = useChatHistory(threadId)
+  const isWorking = useChatIsWorking(threadId)
   const [text, setText] = useState('')
 
   const submit = useCallback(() => {
     if (!threadId) return
     const trimmed = text.trim()
     if (!trimmed) return
-    void send({
+    void client.sendMessage(threadId, {
       clientId: crypto.randomUUID(),
       content: [{ type: 'text', text: trimmed }],
       recipients: [agentId],
     })
     setText('')
-  }, [agentId, send, text, threadId])
+  }, [agentId, client, text, threadId])
 
   if (!threadId)
     return (

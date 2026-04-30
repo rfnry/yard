@@ -1,4 +1,4 @@
-import { type UserIdentity, usePresence, useThreads } from '@rfnry/chat-client-react'
+import { type UserIdentity, useChatPresence, useChatThreads } from '@rfnry/chat-client-react'
 import { useEffect, useState } from 'react'
 import { webhookFor } from './agents'
 import { buttonCls } from './ui'
@@ -8,8 +8,8 @@ type Props = {
 }
 
 export function PingControl({ identity }: Props) {
-  const presence = usePresence()
-  const { data: threadPage } = useThreads({ limit: 50 })
+  const presence = useChatPresence()
+  const { data: threadPage } = useChatThreads({ limit: 50 })
   const channels =
     threadPage?.items.filter(
       (t) => (t.metadata as { kind?: string } | undefined)?.kind === 'channel'

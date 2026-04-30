@@ -2,11 +2,11 @@ import {
   type Identity,
   type Thread,
   type UserIdentity,
-  useThreadActions,
-  useThreadIsWorking,
-  useThreadMembers,
-  useThreadMetadata,
-  useThreadSession,
+  useChatClient,
+  useChatIsWorking,
+  useChatMembers,
+  useChatSession,
+  useChatThread,
 } from '@rfnry/chat-client-react'
 import { useCallback, useState } from 'react'
 import { ComposerForm } from './composer'
@@ -36,11 +36,11 @@ function formatHeader(
 }
 
 export function ThreadPanel({ identity, threadId }: Props) {
-  const session = useThreadSession(threadId)
-  const isWorking = useThreadIsWorking(threadId)
-  const { send } = useThreadActions(threadId)
-  const members = useThreadMembers(threadId)
-  const thread = useThreadMetadata(threadId)
+  const client = useChatClient()
+  const session = useChatSession(threadId)
+  const isWorking = useChatIsWorking(threadId)
+  const members = useChatMembers(threadId)
+  const thread = useChatThread(threadId)
 
   const [showRunEvents, setShowRunEvents] = useState(true)
   const kind = (thread?.metadata as { kind?: string } | undefined)?.kind
@@ -49,12 +49,12 @@ export function ThreadPanel({ identity, threadId }: Props) {
   const onSubmitText = useCallback(
     (trimmed: string) => {
       if (!threadId) return
-      void send({
+      void client.sendMessage(threadId, {
         clientId: crypto.randomUUID(),
         content: [{ type: 'text', text: trimmed }],
       })
     },
-    [send, threadId]
+    [client, threadId]
   )
 
   if (!threadId) {

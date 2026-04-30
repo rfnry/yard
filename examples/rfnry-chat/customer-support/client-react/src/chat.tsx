@@ -1,11 +1,9 @@
 import type { Identity, UserIdentity } from '@rfnry/chat-client-react'
 import {
   useChatClient,
-  useCreateThread,
-  useThreadActions,
-  useThreadEvents,
-  useThreadIsWorking,
-  useThreadSession,
+  useChatHistory,
+  useChatIsWorking,
+  useChatSession,
 } from '@rfnry/chat-client-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buttonCls, EventFeed, inputCls } from './ui'
@@ -24,23 +22,22 @@ type ChatProps = {
 export function Chat({ identity }: ChatProps) {
   const threadId = useFreshThread(identity)
   const client = useChatClient()
-  const session = useThreadSession(threadId)
-  const events = useThreadEvents(threadId)
-  const isWorking = useThreadIsWorking(threadId)
-  const { send } = useThreadActions(threadId)
+  const session = useChatSession(threadId)
+  const events = useChatHistory(threadId)
+  const isWorking = useChatIsWorking(threadId)
   const [text, setText] = useState('')
 
   const submit = useCallback(() => {
     if (!threadId) return
     const trimmed = text.trim()
     if (!trimmed) return
-    void send({
+    void client.sendMessage(threadId, {
       clientId: crypto.randomUUID(),
       content: [{ type: 'text', text: trimmed }],
       recipients: [AGENT.id],
     })
     setText('')
-  }, [send, text, threadId])
+  }, [client, text, threadId])
 
   const clearHistory = useCallback(() => {
     if (!threadId) return
@@ -89,18 +86,17 @@ export function Chat({ identity }: ChatProps) {
 
 function useFreshThread(identity: UserIdentity): string | null {
   const [threadId, setThreadId] = useState<string | null>(null)
-  const { mutateAsync: createThread } = useCreateThread()
   const client = useChatClient()
   const clientId = useMemo(() => crypto.randomUUID(), [])
 
   useEffect(() => {
     void (async () => {
-      const thread = await createThread({ tenant: {}, clientId })
+      const thread = await client.createThread({ tenant: {}, clientId })
       await client.addMember(thread.id, identity)
       await client.addMember(thread.id, AGENT)
       setThreadId(thread.id)
     })()
-  }, [client, clientId, createThread, identity])
+  }, [client, clientId, identity])
 
   return threadId
 }

@@ -2,7 +2,7 @@ import {
   ChatProvider,
   type Event,
   type UserIdentity,
-  useAnyEventHandler,
+  useChatHandlers,
 } from '@rfnry/chat-client-react'
 import { useEffect, useMemo, useState } from 'react'
 import { PingControl } from './ping-control'
@@ -98,8 +98,9 @@ function UnreadTracker({
   selectedThreadId: string | null
 }) {
   const { increment, clear } = useUnread()
+  const { on } = useChatHandlers()
 
-  useAnyEventHandler((event: Event) => {
+  on.anyEvent((event: Event) => {
     if (event.type !== 'message') return
     if (event.author.id === selfId) return
     if (event.threadId === selectedThreadId) return
