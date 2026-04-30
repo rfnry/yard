@@ -1,0 +1,20 @@
+name: rfnry-customer-support
+
+services:
+  agent:
+    image: python:3.13-slim
+    working_dir: /work/yard/examples/rfnry/customer-support/server-client-python
+    volumes:
+      - ../../../..:/work
+      - /work/yard/examples/rfnry/customer-support/server-client-python/.venv
+    env_file:
+      - path: ./server-client-python/.env
+        required: false
+    ports:
+      - "8101:8101"
+    command: >
+      sh -c "
+      pip install -q uv &&
+      uv sync --extra dev &&
+      uv run python -m src.main
+      "
