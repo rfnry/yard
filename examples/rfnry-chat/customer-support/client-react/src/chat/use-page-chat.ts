@@ -22,16 +22,6 @@ export type PageChatViewModel = {
   clearHistory: () => void
 }
 
-/**
- * Page-level hook for the customer-support example. Composes every chat
- * subscription and side-effect this view needs into a single value.
- *
- * Re-render notes: the returned object is a fresh literal each render, but
- * React only re-renders when one of the underlying hooks does
- * (history/session/isWorking/text). The returned methods are wrapped in
- * `useCallback` so descendants can safely memoize on them. Treat this hook
- * as the boundary between chat behavior and UI rendering.
- */
 export function usePageChat({
   identity,
   agent,
