@@ -1,7 +1,7 @@
 import type { Identity } from '@rfnry/chat-client-react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MentionPicker } from '../src/mention-picker'
+import { MentionPicker } from '../src/chat/mention-picker'
 
 const members: Identity[] = [
   { id: 'engineer', role: 'assistant', name: 'Engineer', metadata: {} },

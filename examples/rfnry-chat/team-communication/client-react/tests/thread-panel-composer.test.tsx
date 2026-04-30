@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { ComposerForm } from '../src/composer'
+import { ComposerForm } from '../src/chat/composer'
 
 const channelMembers = [
   { id: 'engineer', role: 'assistant' as const, name: 'Engineer', metadata: {} },

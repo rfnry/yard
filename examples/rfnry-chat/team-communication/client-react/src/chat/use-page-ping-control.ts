@@ -1,13 +1,27 @@
-import { type UserIdentity, useChatPresence, useChatThreads } from '@rfnry/chat-client-react'
-import { useEffect, useState } from 'react'
+import {
+  type AssistantIdentity,
+  type Thread,
+  useChatPresence,
+  useChatThreads,
+  type UserIdentity,
+} from '@rfnry/chat-client-react'
+import { useCallback, useEffect, useState } from 'react'
 import { webhookFor } from './agents'
-import { buttonCls } from './ui'
 
-type Props = {
-  identity: UserIdentity
+export type PagePingControlViewModel = {
+  onlineAgents: AssistantIdentity[]
+  channels: Thread[]
+  agentId: string
+  setAgentId: (id: string) => void
+  channelId: string
+  setChannelId: (id: string) => void
+  busy: null | 'channel' | 'direct'
+  status: string | null
+  pingChannel: () => Promise<void>
+  pingDirect: () => Promise<void>
 }
 
-export function PingControl({ identity }: Props) {
+export function usePagePingControl(identity: UserIdentity): PagePingControlViewModel {
   const presence = useChatPresence()
   const { data: threadPage } = useChatThreads({ limit: 50 })
   const channels =
@@ -32,7 +46,7 @@ export function PingControl({ identity }: Props) {
     if (!channelId && channels.length > 0) setChannelId(channels[0]!.id)
   }, [channelId, channels])
 
-  const pingChannel = async () => {
+  const pingChannel = useCallback(async () => {
     const url = webhookFor(agentId)
     if (!url || !channelId) return
     setBusy('channel')
@@ -57,9 +71,9 @@ export function PingControl({ identity }: Props) {
     } finally {
       setBusy(null)
     }
-  }
+  }, [agentId, channelId, identity.id, identity.name])
 
-  const pingDirect = async () => {
+  const pingDirect = useCallback(async () => {
     const url = webhookFor(agentId)
     if (!url) return
     setBusy('direct')
@@ -85,61 +99,18 @@ export function PingControl({ identity }: Props) {
     } finally {
       setBusy(null)
     }
+  }, [agentId, identity.id, identity.name])
+
+  return {
+    onlineAgents,
+    channels,
+    agentId,
+    setAgentId,
+    channelId,
+    setChannelId,
+    busy,
+    status,
+    pingChannel,
+    pingDirect,
   }
-
-  return (
-    <section className="mt-4 border-t border-neutral-800 pt-3 p-3 flex flex-col gap-2 text-xs">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-neutral-500">agent</span>
-        <select
-          value={agentId}
-          onChange={(e) => setAgentId(e.target.value)}
-          className="bg-neutral-900 border border-neutral-700 text-neutral-200 px-2 py-1"
-        >
-          {onlineAgents.length === 0 && <option value="">no agents online</option>}
-          {onlineAgents.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-
-        <span className="text-neutral-500">channel</span>
-        <select
-          value={channelId}
-          onChange={(e) => setChannelId(e.target.value)}
-          className="bg-neutral-900 border border-neutral-700 text-neutral-200 px-2 py-1"
-        >
-          {channels.length === 0 && <option value="">no channels</option>}
-          {channels.map((c) => {
-            const label = (c.metadata as { label?: string } | undefined)?.label ?? c.id
-            return (
-              <option key={c.id} value={c.id}>
-                # {label}
-              </option>
-            )
-          })}
-        </select>
-
-        <button
-          type="button"
-          onClick={() => void pingChannel()}
-          disabled={!agentId || !channelId || busy !== null}
-          className={buttonCls}
-        >
-          {busy === 'channel' ? 'pinging…' : 'Ping in channel'}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void pingDirect()}
-          disabled={!agentId || busy !== null}
-          className={buttonCls}
-        >
-          {busy === 'direct' ? 'pinging…' : 'Ping me direct'}
-        </button>
-      </div>
-      {status && <p className="text-neutral-500 text-[10px]">{status}</p>}
-    </section>
-  )
 }

@@ -1,9 +1,13 @@
-import { ChatProvider, type UserIdentity, useChatHandlers } from '@rfnry/chat-client-react'
-import { useEffect, useMemo, useState } from 'react'
-import { PingControl } from './ping-control'
-import { Sidebar } from './sidebar'
-import { ThreadPanel } from './thread-panel'
-import { UnreadProvider, useUnread, useUnreadController } from './unread'
+import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
+import { useMemo, useState } from 'react'
+import {
+  PingControl,
+  Sidebar,
+  ThreadPanel,
+  UnreadProvider,
+  UnreadTracker,
+  useUnreadController,
+} from './chat'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
 const GUEST_KEY = 'rfnry-team-communication-guest'
@@ -83,23 +87,4 @@ export function App() {
       </ChatProvider>
     </div>
   )
-}
-
-function UnreadTracker({ selectedThreadId }: { selectedThreadId: string | null }) {
-  const { increment, clear } = useUnread()
-  const { on } = useChatHandlers()
-
-  // on.message default-filters self-authored events and recipient-mismatched
-  // events when client.identity is set, so the only check left is "is this
-  // the thread the user is currently viewing?"
-  on.message((event) => {
-    if (event.threadId === selectedThreadId) return
-    increment(event.threadId)
-  })
-
-  useEffect(() => {
-    if (selectedThreadId) clear(selectedThreadId)
-  }, [selectedThreadId, clear])
-
-  return null
 }

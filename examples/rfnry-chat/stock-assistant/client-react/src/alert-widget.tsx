@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { buttonCls, inputCls } from './ui'
+import { buttonCls, inputCls } from './chat/ui'
 
 type Props = {
   webhookUrl: string

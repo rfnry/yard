@@ -1,11 +1,6 @@
-import {
-  type Identity,
-  useChatClient,
-  useChatThreads,
-  useQueryClient,
-} from '@rfnry/chat-client-react'
-import { useCallback, useTransition } from 'react'
+import type { Identity } from '@rfnry/chat-client-react'
 import { buttonCls } from './ui'
+import { usePageSidebar } from './use-page-sidebar'
 
 type Props = {
   selectedThreadId: string | null
@@ -15,40 +10,7 @@ type Props = {
 }
 
 export function Sidebar({ selectedThreadId, onPickThread, agentId, identity }: Props) {
-  const client = useChatClient()
-  const queryClient = useQueryClient()
-  const { data, isLoading } = useChatThreads({ limit: 50 })
-  const [isPending, startTransition] = useTransition()
-  const threads = data?.items ?? []
-
-  const handleNewThread = useCallback(() => {
-    startTransition(async () => {
-      const thread = await client.createThread({ tenant: {}, clientId: crypto.randomUUID() })
-      await client.addMember(thread.id, {
-        role: 'assistant',
-        id: agentId,
-        name: 'Stock Assistant',
-        metadata: {},
-      })
-      onPickThread(thread.id)
-    })
-  }, [agentId, client, onPickThread])
-
-  const handleClear = useCallback(
-    (threadId: string) => {
-      void client.clearThreadEvents(threadId)
-    },
-    [client]
-  )
-
-  const handleDelete = useCallback(
-    async (threadId: string) => {
-      await client.deleteThread(threadId)
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'threads'] })
-      if (selectedThreadId === threadId) onPickThread(null)
-    },
-    [client, onPickThread, queryClient, selectedThreadId]
-  )
+  const page = usePageSidebar({ agentId, selectedThreadId, onPickThread })
 
   return (
     <aside className="flex flex-col gap-3 border border-neutral-800 p-3 text-xs">
@@ -56,8 +18,8 @@ export function Sidebar({ selectedThreadId, onPickThread, agentId, identity }: P
         <span className="text-neutral-500">threads</span>
         <button
           type="button"
-          onClick={handleNewThread}
-          disabled={isPending}
+          onClick={page.handleNewThread}
+          disabled={page.isPending}
           className={buttonCls}
         >
           + new
@@ -67,13 +29,13 @@ export function Sidebar({ selectedThreadId, onPickThread, agentId, identity }: P
         your id: <span className="text-neutral-400">{identity.id}</span>
       </p>
       <ul className="flex flex-col gap-1 overflow-auto max-h-[70vh]">
-        {isLoading && <li className="text-neutral-600 italic">loading…</li>}
-        {!isLoading && threads.length === 0 && (
+        {page.isLoading && <li className="text-neutral-600 italic">loading…</li>}
+        {!page.isLoading && page.threads.length === 0 && (
           <li className="text-neutral-600 italic">
             no threads yet — create one or trigger /alert-user
           </li>
         )}
-        {threads.map((t) => {
+        {page.threads.map((t) => {
           const isSelected = selectedThreadId === t.id
           return (
             <li
@@ -97,7 +59,7 @@ export function Sidebar({ selectedThreadId, onPickThread, agentId, identity }: P
               <div className="flex gap-1 px-2 pb-1">
                 <button
                   type="button"
-                  onClick={() => handleClear(t.id)}
+                  onClick={() => page.handleClear(t.id)}
                   className="text-[10px] text-neutral-500 hover:text-neutral-300"
                   title="clear thread history, keep thread"
                 >
@@ -105,7 +67,7 @@ export function Sidebar({ selectedThreadId, onPickThread, agentId, identity }: P
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(t.id)}
+                  onClick={() => void page.handleDelete(t.id)}
                   className="text-[10px] text-neutral-500 hover:text-red-400"
                   title="delete thread entirely"
                 >

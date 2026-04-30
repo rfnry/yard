@@ -1,8 +1,7 @@
 import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
 import { useMemo, useState } from 'react'
 import { AlertWidget } from './alert-widget'
-import { Sidebar } from './sidebar'
-import { ThreadPanel } from './thread-panel'
+import { Sidebar, ThreadPanel } from './chat'
 
 const CHAT_SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
 const AGENT_WEBHOOK_URL = import.meta.env.VITE_AGENT_WEBHOOK_URL ?? 'http://localhost:9100'

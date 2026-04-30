@@ -1,6 +1,6 @@
 import { ChatProvider, type UserIdentity } from '@rfnry/chat-client-react'
 import { useMemo, useState } from 'react'
-import { Sidebar } from './sidebar'
+import { Sidebar, ThreadPanel } from './chat'
 import {
   findOrg,
   ORGANIZATIONS,
@@ -9,7 +9,6 @@ import {
   tenantFor,
   type WorkspaceId,
 } from './tenants'
-import { ThreadPanel } from './thread-panel'
 
 const SERVER_URL = import.meta.env.VITE_CHAT_SERVER_URL ?? 'http://localhost:8000'
 

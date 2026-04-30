@@ -1,10 +1,4 @@
-import {
-  type UserIdentity,
-  useChatClient,
-  useChatThreads,
-  useQueryClient,
-} from '@rfnry/chat-client-react'
-import { useCallback, useTransition } from 'react'
+import type { UserIdentity } from '@rfnry/chat-client-react'
 import {
   findOrg,
   ORGANIZATIONS,
@@ -13,8 +7,9 @@ import {
   ROLES,
   type Role,
   type WorkspaceId,
-} from './tenants'
+} from '../tenants'
 import { buttonCls } from './ui'
+import { usePageSidebar } from './use-page-sidebar'
 
 function tryFindOrg(id: string): Organization | null {
   try {
@@ -49,38 +44,7 @@ export function Sidebar({
   identity,
   authorId,
 }: Props) {
-  const client = useChatClient()
-  const queryClient = useQueryClient()
-  const { data, isLoading } = useChatThreads({ limit: 50 })
-  const [isPending, startTransition] = useTransition()
-  const threads = data?.items ?? []
-
-  const handleNewThread = useCallback(() => {
-    startTransition(async () => {
-      const thread = await client.createThread({
-        tenant: { organization: org.id, workspace: workspaceId, author: authorId },
-        clientId: crypto.randomUUID(),
-      })
-      await client.addMember(thread.id, org.agent)
-      onPickThread(thread.id)
-    })
-  }, [authorId, client, onPickThread, org.agent, org.id, workspaceId])
-
-  const handleClear = useCallback(
-    (threadId: string) => {
-      void client.clearThreadEvents(threadId)
-    },
-    [client]
-  )
-
-  const handleDelete = useCallback(
-    async (threadId: string) => {
-      await client.deleteThread(threadId)
-      await queryClient.invalidateQueries({ queryKey: ['chat', 'threads'] })
-      if (selectedThreadId === threadId) onPickThread(null)
-    },
-    [client, onPickThread, queryClient, selectedThreadId]
-  )
+  const page = usePageSidebar({ org, workspaceId, authorId, selectedThreadId, onPickThread })
 
   return (
     <aside className="flex flex-col gap-4 border border-neutral-800 p-3 text-xs">
@@ -154,19 +118,19 @@ export function Sidebar({
           <span className="text-neutral-500">threads</span>
           <button
             type="button"
-            onClick={handleNewThread}
-            disabled={isPending}
+            onClick={page.handleNewThread}
+            disabled={page.isPending}
             className={buttonCls}
           >
             + new
           </button>
         </div>
         <ul className="flex flex-col gap-1 overflow-auto max-h-96">
-          {isLoading && <li className="text-neutral-600 italic">loading…</li>}
-          {!isLoading && threads.length === 0 && (
+          {page.isLoading && <li className="text-neutral-600 italic">loading…</li>}
+          {!page.isLoading && page.threads.length === 0 && (
             <li className="text-neutral-600 italic">nothing visible at this scope</li>
           )}
-          {threads.map((t) => {
+          {page.threads.map((t) => {
             const threadAuthor = typeof t.tenant.author === 'string' ? t.tenant.author : '?'
             const threadOrgId =
               typeof t.tenant.organization === 'string' ? t.tenant.organization : null
@@ -195,7 +159,7 @@ export function Sidebar({
                 <div className="flex gap-1 px-2 pb-1">
                   <button
                     type="button"
-                    onClick={() => handleClear(t.id)}
+                    onClick={() => page.handleClear(t.id)}
                     className="text-[10px] text-neutral-500 hover:text-neutral-300"
                     title="clear thread history, keep thread"
                   >
@@ -203,7 +167,7 @@ export function Sidebar({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void handleDelete(t.id)}
+                    onClick={() => void page.handleDelete(t.id)}
                     className="text-[10px] text-neutral-500 hover:text-red-400"
                     title="delete thread entirely"
                   >

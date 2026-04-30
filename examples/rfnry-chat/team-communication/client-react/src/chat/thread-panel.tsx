@@ -1,16 +1,8 @@
-import {
-  type Identity,
-  type Thread,
-  type UserIdentity,
-  useChatClient,
-  useChatIsWorking,
-  useChatMembers,
-  useChatSession,
-  useChatThread,
-} from '@rfnry/chat-client-react'
-import { useCallback, useState } from 'react'
+import type { Identity, Thread, UserIdentity } from '@rfnry/chat-client-react'
+import { useState } from 'react'
 import { ComposerForm } from './composer'
 import { EventFeed } from './ui'
+import { usePageThreadPanel } from './use-page-thread-panel'
 
 type Props = {
   identity: UserIdentity
@@ -36,26 +28,10 @@ function formatHeader(
 }
 
 export function ThreadPanel({ identity, threadId }: Props) {
-  const client = useChatClient()
-  const session = useChatSession(threadId)
-  const isWorking = useChatIsWorking(threadId)
-  const members = useChatMembers(threadId)
-  const thread = useChatThread(threadId)
-
+  const page = usePageThreadPanel(threadId)
   const [showRunEvents, setShowRunEvents] = useState(true)
-  const kind = (thread?.metadata as { kind?: string } | undefined)?.kind
+  const kind = (page.thread?.metadata as { kind?: string } | undefined)?.kind
   const isChannel = kind === 'channel'
-
-  const onSubmitText = useCallback(
-    (trimmed: string) => {
-      if (!threadId) return
-      void client.sendMessage(threadId, {
-        clientId: crypto.randomUUID(),
-        content: [{ type: 'text', text: trimmed }],
-      })
-    },
-    [client, threadId]
-  )
 
   if (!threadId) {
     return (
@@ -64,14 +40,14 @@ export function ThreadPanel({ identity, threadId }: Props) {
       </section>
     )
   }
-  if (session.status === 'joining') {
+  if (page.session.status === 'joining') {
     return <p className="text-neutral-500 text-xs p-4">joining…</p>
   }
-  if (session.status === 'error') {
-    return <p className="text-red-400 text-xs p-4">error: {session.error?.message}</p>
+  if (page.session.status === 'error') {
+    return <p className="text-red-400 text-xs p-4">error: {page.session.error?.message}</p>
   }
 
-  const header = formatHeader(threadId, thread, members, identity.id)
+  const header = formatHeader(threadId, page.thread, page.members, identity.id)
 
   return (
     <section className="flex flex-col gap-3 border border-neutral-800 p-3">
@@ -90,12 +66,12 @@ export function ThreadPanel({ identity, threadId }: Props) {
           </label>
         )}
       </header>
-      <EventFeed threadId={threadId} members={members} showRunEvents={showRunEvents} />
-      {isWorking && <div className="text-neutral-500 text-xs">assistant is working…</div>}
+      <EventFeed threadId={threadId} members={page.members} showRunEvents={showRunEvents} />
+      {page.isWorking && <div className="text-neutral-500 text-xs">assistant is working…</div>}
       <ComposerForm
-        members={members.filter((m) => m.role === 'assistant')}
+        members={page.members.filter((m) => m.role === 'assistant')}
         isChannel={isChannel}
-        onSubmit={onSubmitText}
+        onSubmit={page.submit}
       />
     </section>
   )
