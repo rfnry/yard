@@ -12,7 +12,7 @@ Agent tree at `agent/`:
 ```
 agent/
   AGENT.md INDEX.md
-  instructions/
+  rules/
   skills/
   tools/         catalog, stock, orders, shipping, payments, promotions, sales-summary
   tasks/team-lookup.md

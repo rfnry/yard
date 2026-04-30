@@ -15,7 +15,7 @@ The agent's markdown tree lives at `agent/`:
 ```
 agent/
   AGENT.md INDEX.md
-  instructions/      one rule per file
+  rules/      one rule per file
   knowledge/         warranty / replacement / refund policies
   skills/            triggerable procedures (warped-part flow, return flow…)
   tools/             declarative HTTP tools pointing at http://127.0.0.1:8201

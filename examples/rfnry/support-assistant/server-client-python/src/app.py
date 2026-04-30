@@ -18,6 +18,5 @@ def build_agent() -> Agent:
     return Agent(
         root=AGENT_ROOT,
         provider=provider,
-        namespaces=[],
         refining=RefiningConfig(default_lookback=10),
     )
