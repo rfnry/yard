@@ -1,6 +1,7 @@
 # Index
 
-- [AGENT.md](AGENT.md) — identity + multi-tenant rules
-- [instructions/](instructions/)
-- [skills/](skills/)
-- [tasks/support/](tasks/support/)
+- [AGENT.md](AGENT.md) — identity + reply shape
+- [instructions/](instructions/) — behavioral rules
+- [skills/](skills/) — investigative procedures
+- [tools/](tools/) — public-records HTTP tools
+- [tasks/investigate/](tasks/investigate/) — primary task

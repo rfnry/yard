@@ -1,7 +1,7 @@
 # Index
 
-- [AGENT.md](AGENT.md)
-- [instructions/](instructions/)
-- [skills/](skills/)
+- [AGENT.md](AGENT.md) — identity + the section-per-lookup reply shape
+- [instructions/](instructions/) — behavioral rules
+- [skills/](skills/) — common lookup combos
 - [tools/](tools/) — declarative HTTP tools
-- [tasks/quote-lookup/](tasks/quote-lookup/)
+- [tasks/team-lookup/](tasks/team-lookup/) — primary task
