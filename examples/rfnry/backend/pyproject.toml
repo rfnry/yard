@@ -1,0 +1,43 @@
+[project]
+name = "rfnry-examples-backend"
+version = "0.0.1"
+description = "Mock backend serving deterministic data to the rfnry agent examples' tool calls"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.136.0",
+    "uvicorn[standard]>=0.44.0",
+    "pydantic>=2.13.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.20.1",
+    "poethepoet>=0.44.0",
+    "ruff>=0.15.11",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.poe.tasks]
+dev = "python -m src.main"
+start = "python -m src.main"
+format = "ruff format ."
+"format:imports" = "ruff check --select I --fix ."
+check = "ruff check ."
+"check:fix" = "ruff check --fix ."
+typecheck = "mypy src"
