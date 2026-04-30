@@ -1,14 +1,18 @@
 # support-assistant — server
 
-Two clean layers:
+Layers:
 
 - `src/main.py` — HTTP infrastructure. FastAPI app, CORS, uvicorn,
   route registration. No agent code here.
-- `src/app.py` — application layer. Builds the `rfnry.Agent`,
-  resolves the agent root, constructs the provider inline from
-  `ANTHROPIC_API_KEY` (required), exposes a singleton the routes
-  consume via `app.state`.
-- `src/routes.py` — HTTP handlers calling `state.agent`.
+- `src/app.py` — module-level `agent` binding. Resolves the agent
+  root and constructs the `rfnry.Agent` (with inline
+  `AnthropicProvider` from `ANTHROPIC_API_KEY`, required) at import
+  time. `main.py` wires it into `app.state`.
+- `src/routes.py` — HTTP handlers (Pydantic models, FastAPI binding,
+  HTTPException shaping). No `await agent.X` lives here.
+- `src/services/` — agent orchestration (`run_turn`, `run_resume`).
+  Pure async functions; no FastAPI imports. Routes call into
+  `services.run_*`.
 
 The agent's markdown tree lives at `agent/`:
 

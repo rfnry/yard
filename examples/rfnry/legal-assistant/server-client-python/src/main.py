@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src import routes
-from src.app import AGENT_ROOT, build_agent
+from src.app import AGENT_ROOT, agent
 
 PORT = int(os.environ.get("PORT", "8102"))
 
@@ -20,7 +20,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.state.agent = build_agent()
+app.state.agent = agent
 routes.register(app)
 
 

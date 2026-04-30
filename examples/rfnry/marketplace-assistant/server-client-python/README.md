@@ -1,11 +1,15 @@
 # marketplace-assistant — server
 
-Two clean layers:
+Layers:
 
 - `src/main.py` — HTTP infrastructure (FastAPI, CORS, uvicorn).
-- `src/app.py` — application layer (Agent construction, agent root,
-  inline `AnthropicProvider` from `ANTHROPIC_API_KEY`).
+- `src/app.py` — module-level `agent` binding (agent root +
+  `rfnry.Agent` constructed at import time with an inline
+  `AnthropicProvider` from `ANTHROPIC_API_KEY`).
 - `src/routes.py` — `POST /turn`, `POST /resume`, `GET /health`.
+  HTTP-only: Pydantic models, FastAPI binding, HTTPException shaping.
+- `src/services/` — agent orchestration (`run_turn`, `run_resume`).
+  Pure async functions; no FastAPI imports.
 
 Agent tree at `agent/`:
 

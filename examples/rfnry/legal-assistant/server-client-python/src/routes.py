@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
+from src import services
+
 
 class TurnRequest(BaseModel):
     session_id: str
@@ -29,9 +31,9 @@ def register(app: FastAPI) -> None:
 
     @app.post("/turn")
     async def turn(req: TurnRequest, request: Request) -> dict[str, object]:
-        agent = request.app.state.agent
         try:
-            reply = await agent.turn(
+            reply = await services.run_turn(
+                request.app.state.agent,
                 session_id=req.session_id,
                 message=req.message,
                 scope={"case_id": req.case_id},
@@ -43,8 +45,8 @@ def register(app: FastAPI) -> None:
 
     @app.post("/resume")
     async def resume(req: ResumeRequest, request: Request) -> dict[str, object]:
-        agent = request.app.state.agent
-        reply = await agent.resume(
+        reply = await services.run_resume(
+            request.app.state.agent,
             session_id=req.session_id,
             scope={"case_id": req.case_id},
             task=req.task,
@@ -53,9 +55,12 @@ def register(app: FastAPI) -> None:
 
     @app.post("/consolidate")
     async def consolidate(req: ConsolidateRequest, request: Request) -> dict[str, object]:
-        agent = request.app.state.agent
         try:
-            result = await agent.consolidate(task=req.task, scope={"case_id": req.case_id})
+            result = await services.run_consolidate(
+                request.app.state.agent,
+                scope={"case_id": req.case_id},
+                task=req.task,
+            )
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {

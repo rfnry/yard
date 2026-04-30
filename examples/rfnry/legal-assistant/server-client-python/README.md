@@ -1,12 +1,17 @@
 # legal-assistant — server
 
-Two clean layers:
+Layers:
 
 - `src/main.py` — FastAPI bootstrap (HTTP infra only).
-- `src/app.py` — Agent construction (application layer); the
-  `AnthropicProvider` is built inline from `ANTHROPIC_API_KEY`
-  (required — boot raises `KeyError` if unset).
-- `src/routes.py` — `POST /turn`, `POST /resume`, `GET /health`.
+- `src/app.py` — module-level `agent` binding (agent root +
+  `rfnry.Agent` constructed at import time with an inline
+  `AnthropicProvider` from `ANTHROPIC_API_KEY`, required — boot
+  raises `KeyError` if unset).
+- `src/routes.py` — `POST /turn`, `POST /resume`, `POST /consolidate`,
+  `GET /health`. HTTP-only: Pydantic models, FastAPI binding,
+  HTTPException shaping.
+- `src/services/` — agent orchestration (`run_turn`, `run_resume`,
+  `run_consolidate`). Pure async functions; no FastAPI imports.
 
 The agent declares `namespaces=["case_id"]`. Every request supplies
 a `case_id` in the body, which rfnry validates into a single-segment
