@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from rfnry import Agent
+
+from src.agent.schemas import InvestigationReport
 
 
 async def run_turn(
@@ -10,7 +14,16 @@ async def run_turn(
     message: str,
     scope: dict[str, str],
     task: str | None,
-) -> str:
+) -> str | dict[str, Any]:
+    if task == "investigate":
+        report = await agent.turn(
+            session_id=session_id,
+            message=message,
+            scope=scope,
+            task=task,
+            expect=InvestigationReport,
+        )
+        return report.model_dump(mode="json")
     return await agent.turn(
         session_id=session_id,
         message=message,

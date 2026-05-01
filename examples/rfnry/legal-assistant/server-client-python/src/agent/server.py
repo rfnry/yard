@@ -13,6 +13,8 @@ from rfnry import (
 )
 from rfnry.providers.anthropic import AnthropicProvider
 
+from src.agent.schemas import InvestigationReport
+
 AGENT_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agent"
 
 agent = Agent(
@@ -22,6 +24,7 @@ agent = Agent(
         model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
     ),
     namespaces=["case_id"],
+    output_schemas={"InvestigationReport": InvestigationReport},
     refining=RefiningConfig(
         methods=[
             RefiningTasksConfig(lookback=20),
