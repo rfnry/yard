@@ -90,11 +90,13 @@ State partitions:
 
 ```
 data/case-A/sessions/a-1/events.jsonl
-data/case-A/state.db                      # case-A's lessons + reflections
-data/case-A/tasks/investigate/...         # per-task accumulator state
-data/case-B/sessions/b-1/events.jsonl
-data/case-B/state.db                      # case-B's lessons + reflections
-data/case-B/tasks/investigate/...
+data/case-A/state.db                                # case-A's lessons + reflections (sqlite mirror)
+data/case-A/refining/reflections/investigate/...    # per-turn reflections
+data/case-A/refining/outcomes/investigate/...       # per-turn critic outcomes
+data/case-A/refining/lessons/investigate/...        # consolidated lessons (boot bundle)
+data/case-A/refining/eval/investigate/cases/...     # eval cases (used by GEPA + lesson gate)
+data/case-A/refining/optimizations/skills/<skill>/<run_id>/...   # GEPA runs
+data/case-B/...                                     # fully isolated mirror
 ```
 
 The `case-B` agent never sees `case-A`'s lessons — they don't enter
@@ -103,14 +105,27 @@ jail rejects it.
 
 ## Refining (the point of this example)
 
-This example leans on rfnry's refining loop:
+This example exercises both rfnry refining cadences:
+
+1. **Reflection → lesson (tasks-only).** Per-turn reflections + critic
+   outcomes accumulate under `data/<case_id>/refining/{reflections,outcomes}/<task>/`.
+   `POST /consolidate` clusters them into eval-gated lessons that land in the
+   next boot bundle. Configured via `RefiningTasksConfig` in `server.py`.
+2. **GEPA optimization (any surface).** `POST /optimize/skill` runs
+   `Agent.optimize_method("skills", ...)` against a single skill markdown,
+   producing a destructive edit to `agent/skills/<skill>.md` gated by the
+   eval suite for that case + task. Configured via
+   `RefiningSkillsConfig(optimize=GEPAOptimizeConfig(budget="small"))`.
+
+Inspect persisted state:
 
 ```bash
 uv run rfnry inspect lessons ./agent --scope case_id=case-A --task investigate
 uv run rfnry inspect sessions ./agent --scope case_id=case-A
 ```
 
-After a few turns within one case, run consolidation (via the
-`Agent.consolidate` API or by adding more turns and triggering on a
-schedule) to distill the recurring patterns into per-case lessons
-that load into the next boot bundle. Other cases remain unaffected.
+GEPA needs eval cases on disk under
+`data/<case_id>/refining/eval/<task>/cases/`. Cases are extracted from
+low-quality outcomes via `Agent.extract_eval_case` after enough turns,
+or curated by the operator. Without cases, `/optimize/skill` returns
+`EvaluationError: optimize_method requires at least one EvalCase`.

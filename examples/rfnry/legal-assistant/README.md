@@ -5,14 +5,15 @@ cases. Each `case_id` is a separate scope leaf — the rfnry path-jail
 makes cross-case reads structurally impossible (no special agent
 instruction needed; see "Path-jail" below).
 
-The agent leans heavily on **refining**:
-- Per-case reflections after every turn capture what the lawyer
-  asked, what the assistant looked up, and what was missing.
-- Lessons consolidate the patterns that repeat across turns *within
-  one case*, so the assistant's understanding of that case sharpens
-  with use.
-- Lessons from case A never leak to case B — the path-jail extends
-  to the lessons directory.
+The agent exercises both **refining** cadences:
+- **Reflection → lesson (tasks-only).** Per-turn reflections + critic
+  outcomes accumulate per case; `POST /consolidate` clusters them
+  into eval-gated lessons that load into the next boot bundle.
+- **GEPA optimization (skills here).** `POST /optimize/skill` runs
+  GEPA against a single skill markdown, gated by the case's eval
+  suite, producing a destructive edit to `agent/skills/<skill>.md`.
+- Lessons and optimization runs from case A never leak to case B —
+  the path-jail extends to every refining artifact.
 
 ## Path-jail (what makes this safe by construction)
 
@@ -56,9 +57,10 @@ cd server-client-python && cp .env.example .env && uv sync --extra dev && uv run
 ## Endpoints
 
 ```
-agent          POST /turn       { "session_id":"...", "case_id":"...", "message":"...", "task":"investigate" }
-               POST /resume     { "session_id":"...", "case_id":"..." }
-               POST /consolidate { "case_id":"...", "task":"investigate" }
+agent          POST /turn            { "session_id":"...", "case_id":"...", "message":"...", "task":"investigate" }
+               POST /resume          { "session_id":"...", "case_id":"..." }
+               POST /consolidate     { "case_id":"...", "task":"investigate" }
+               POST /optimize/skill  { "case_id":"...", "skill":"witness-profile", "task":"investigate" }
                GET  /health
 data-backend   GET /identity/{person_id}, /criminal-records/{person_id}, ... (see data-backend/README.md)
 ```

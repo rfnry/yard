@@ -4,7 +4,13 @@ import os
 from pathlib import Path
 
 from anthropic import AsyncAnthropic
-from rfnry import Agent, RefiningConfig
+from rfnry import (
+    Agent,
+    GEPAOptimizeConfig,
+    RefiningConfig,
+    RefiningSkillsConfig,
+    RefiningTasksConfig,
+)
 from rfnry.providers.anthropic import AnthropicProvider
 
 AGENT_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agent"
@@ -17,7 +23,10 @@ agent = Agent(
     ),
     namespaces=["case_id"],
     refining=RefiningConfig(
-        default_lookback=20,
+        methods=[
+            RefiningTasksConfig(lookback=20),
+            RefiningSkillsConfig(optimize=GEPAOptimizeConfig(budget="small")),
+        ],
         use_sqlite_lessons=True,
         use_sqlite_reflections=True,
         use_sqlite_consolidations=True,

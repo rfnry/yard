@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
-from src.agent import run_consolidate, run_resume, run_turn
+from src.agent import run_consolidate, run_optimize_skill, run_resume, run_turn
 
 
 class TurnRequest(BaseModel):
@@ -21,6 +21,12 @@ class ResumeRequest(BaseModel):
 
 class ConsolidateRequest(BaseModel):
     case_id: str
+    task: str = "investigate"
+
+
+class OptimizeSkillRequest(BaseModel):
+    case_id: str
+    skill: str
     task: str = "investigate"
 
 
@@ -69,4 +75,24 @@ def register(app: FastAPI) -> None:
             "patterns_promoted": result.patterns_promoted,
             "patterns_rejected": result.patterns_rejected,
             "lessons_refs": [str(p) for p in result.lessons_refs],
+        }
+
+    @app.post("/optimize/skill")
+    async def optimize_skill(
+        req: OptimizeSkillRequest, request: Request
+    ) -> dict[str, object]:
+        try:
+            outcomes = await run_optimize_skill(
+                request.app.state.agent,
+                scope={"case_id": req.case_id},
+                task=req.task,
+                skill=req.skill,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+        return {
+            "case_id": req.case_id,
+            "skill": req.skill,
+            "task": req.task,
+            "outcomes": [o.model_dump(mode="json") for o in outcomes],
         }
