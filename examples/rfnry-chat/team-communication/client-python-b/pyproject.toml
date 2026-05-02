@@ -2,11 +2,10 @@
 name = "team-communication-agent-b"
 version = "0.0.1"
 description = "Team-communication Agent B (Release Coordinator persona). Port 9101."
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "rfnry-chat-protocol",
-    "rfnry-chat-client",
-    "anthropic>=0.80.0",
+    "rfnry-chat-client[anthropic]",
     "fastapi>=0.136.0",
     "uvicorn[standard]>=0.44.0",
     "httpx>=0.28.1",
@@ -33,7 +32,7 @@ packages = ["src"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

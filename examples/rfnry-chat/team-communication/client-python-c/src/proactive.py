@@ -3,10 +3,10 @@ from __future__ import annotations
 import random
 
 from rfnry_chat_client import Send
+from rfnry_chat_client.providers import Message
 from rfnry_chat_protocol import TextPart
 
-from src import provider
-from src.agent import IDENTITY, PERSONA_PROMPT, SUBJECTS
+from src.agent import IDENTITY, PERSONA_PROMPT, SUBJECTS, build_provider
 
 
 async def stream_proactive_message(
@@ -18,9 +18,9 @@ async def stream_proactive_message(
     addressee_id: str | None = None,
 ) -> str:
     subject = random.choice(SUBJECTS)
-    anthropic = provider.build_anthropic()
+    provider = build_provider()
 
-    if anthropic is None:
+    if provider.kind == "mock":
         await send.emit(
             send.message([TextPart(text=f"[stub {IDENTITY.name}] subject: {subject}")]),
         )
@@ -40,13 +40,12 @@ async def stream_proactive_message(
     recipients = [addressee_id] if audience == "channel" and addressee_id else None
 
     async with send.message_stream(recipients=recipients) as stream:
-        async with anthropic.messages.stream(
-            model=provider.ANTHROPIC_MODEL,
-            max_tokens=512,
+        async for delta in provider.stream(
             system=PERSONA_PROMPT,
-            messages=[{"role": "user", "content": user_prompt}],
-        ) as model_stream:
-            async for token in model_stream.text_stream:
-                await stream.write(token)
+            messages=[Message(role="user", content=user_prompt)],
+            tools=[],
+        ):
+            if delta.text:
+                await stream.write(delta.text)
 
     return subject
