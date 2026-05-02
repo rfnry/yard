@@ -124,14 +124,30 @@ curl -X POST http://localhost:8201/query \
 The two knowledge_ids stay isolated: `machines` keeps demonstrating the indexed
 pipeline; `quick-reference` keeps demonstrating the cached full-context path.
 
+## Observability + telemetry
+
+Both modules are wired and always-on:
+
+- **Observability** uses `default_observability_sink()` — auto-detects: `PrettyStderrSink` when stderr is a TTY (developer terminals, color-tagged single-line records), `JsonlStderrSink` everywhere else (Docker, CI, log shippers). Override with `RFNRY_RAG_OBSERVABILITY_FORMAT={pretty,json}`; honors `NO_COLOR`.
+- **Telemetry** auto-wires `SqlAlchemyTelemetrySink(metadata_store)` whenever `RagEngineConfig` receives a `metadata_store` and no explicit telemetry sink — one row per query / ingest persists to the same Postgres database as metadata, in tables `rag_query_telemetry` and `rag_ingest_telemetry` (auto-created on init). Inspect rollups with the metadata store's URL:
+
+```bash
+psql "$POSTGRES_URL" -c "SELECT knowledge_id, COUNT(*) AS queries, SUM(tokens_input + tokens_output) AS total_tokens FROM rag_query_telemetry GROUP BY knowledge_id;"
+psql "$POSTGRES_URL" -c "SELECT knowledge_id, source_id, outcome, duration_ms FROM rag_ingest_telemetry ORDER BY at DESC LIMIT 10;"
+```
+
+Pricing is downstream — the library emits raw token counts only. Apply rate cards in your admin UI / dashboard against `tokens_input`, `tokens_output`, `tokens_cache_creation`, `tokens_cache_read`.
+
 ## Tunables
 
 `python/.env`:
 
-| key                       | default                            | notes                                                                 |
-|---------------------------|------------------------------------|-----------------------------------------------------------------------|
-| `KNOWLEDGE_ID`            | `machines`                         | logical partition all ingest/query calls land in by default           |
-| `FULL_CONTEXT_THRESHOLD`  | `150000`                           | corpora ≤ this many tokens skip retrieval and load whole into prompt  |
-| `EMBEDDING_MODEL`         | `text-embedding-3-small`           | OpenAI                                                                 |
-| `GENERATION_MODEL`        | `claude-sonnet-4-5`                | Anthropic                                                              |
-| `VISION_MODEL`            | `claude-sonnet-4-5`                | Anthropic — drives the drawing pipeline                                |
+| key                                | default                            | notes                                                                 |
+|------------------------------------|------------------------------------|-----------------------------------------------------------------------|
+| `KNOWLEDGE_ID`                     | `machines`                         | logical partition all ingest/query calls land in by default           |
+| `FULL_CONTEXT_THRESHOLD`           | `150000`                           | corpora ≤ this many tokens skip retrieval and load whole into prompt  |
+| `EMBEDDING_MODEL`                  | `text-embedding-3-small`           | OpenAI                                                                 |
+| `GENERATION_MODEL`                 | `claude-sonnet-4-5`                | Anthropic                                                              |
+| `VISION_MODEL`                     | `claude-sonnet-4-5`                | Anthropic — drives the drawing pipeline                                |
+| `RFNRY_RAG_OBSERVABILITY_FORMAT`   | *(auto)*                           | `pretty` or `json` — overrides the TTY-detection default               |
+| `NO_COLOR`                         | *(unset)*                          | disables ANSI color in `PrettyStderrSink`                              |

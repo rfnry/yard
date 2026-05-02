@@ -15,7 +15,7 @@ from rfnry_rag import (
     GraphRetrieval,
     IngestionConfig,
     LanguageModelClient,
-    LanguageModelProvider,
+    LanguageModel,
     Neo4jGraphStore,
     PostgresDocumentStore,
     QdrantVectorStore,
@@ -30,6 +30,7 @@ from rfnry_rag import (
     Vision,
 )
 from rfnry_rag.config import DrawingIngestionConfig, GraphIngestionConfig
+from rfnry_rag.observability import Observability, default_observability_sink
 
 DEFAULT_KNOWLEDGE_ID = os.environ.get("KNOWLEDGE_ID", "machines")
 _FULL_CONTEXT_THRESHOLD = int(os.environ.get("FULL_CONTEXT_THRESHOLD", "150000"))
@@ -51,7 +52,7 @@ def _require(env: str) -> str:
 
 def _generation_client() -> LanguageModelClient:
     return LanguageModelClient(
-        provider=LanguageModelProvider(
+        lm=LanguageModel(
             provider="anthropic",
             model=os.environ.get("GENERATION_MODEL", "claude-sonnet-4-5"),
             api_key=_require("ANTHROPIC_API_KEY"),
@@ -64,14 +65,14 @@ def _build_config() -> RagEngineConfig:
     anthropic_key = _require("ANTHROPIC_API_KEY")
 
     embeddings = Embeddings(
-        LanguageModelProvider(
+        LanguageModel(
             provider="openai",
             model=os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small"),
             api_key=openai_key,
         )
     )
     vision = Vision(
-        LanguageModelProvider(
+        LanguageModel(
             provider="anthropic",
             model=os.environ.get("VISION_MODEL", "claude-sonnet-4-5"),
             api_key=anthropic_key,
@@ -173,12 +174,15 @@ def _build_config() -> RagEngineConfig:
         full_context_threshold=_FULL_CONTEXT_THRESHOLD,
     )
 
+    observability = Observability(sink=default_observability_sink())
+
     return RagEngineConfig(
         metadata_store=metadata_store,
         ingestion=ingestion,
         retrieval=retrieval,
         generation=generation,
         routing=routing,
+        observability=observability,
     )
 
 
