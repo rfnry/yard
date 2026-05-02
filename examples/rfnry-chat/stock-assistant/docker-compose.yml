@@ -7,6 +7,8 @@ services:
     volumes:
       - ../../../..:/work
       - /work/yard/examples/rfnry-chat/stock-assistant/server-python/.venv
+    environment:
+      RFNRY_OBSERVABILITY_FORMAT: ${RFNRY_OBSERVABILITY_FORMAT:-json}
     ports:
       - "8000:8000"
     command: >
@@ -27,6 +29,7 @@ services:
         required: false
     environment:
       CHAT_SERVER_URL: http://server:8000
+      RFNRY_OBSERVABILITY_FORMAT: ${RFNRY_OBSERVABILITY_FORMAT:-json}
     ports:
       - "9100:9100"
     command: >
