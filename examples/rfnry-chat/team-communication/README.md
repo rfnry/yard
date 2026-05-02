@@ -105,6 +105,40 @@ DMs are unaffected — implicit single-recipient routing applies.
 6. In the TopControl, pick Agent B + `#general` → click "Ping in channel" → `#general` shows a streamed `@Alice ...` message to every tab in the channel (with `ANTHROPIC_API_KEY` set, typing is visible; otherwise the stub message appears).
 7. In the TopControl, pick Agent C → click "Ping me direct" → a DM with Agent C auto-opens in your tab only; the message streams in.
 
+## Observability + Telemetry
+
+This example uses the always-on observability + telemetry shipped with `rfnry-chat-server` / `rfnry-chat-client`.
+
+### Live tail (stderr)
+
+In a TTY, log records are pretty-printed with colors. From `docker compose logs -f`, default is JSONL (no TTY detected). Force a mode:
+
+```sh
+RFNRY_OBSERVABILITY_FORMAT=pretty docker compose up
+RFNRY_OBSERVABILITY_FORMAT=json docker compose up | jq .
+```
+
+Set `NO_COLOR=1` to disable colors in pretty mode.
+
+### Telemetry SQLite
+
+One row per `Run` is written to per-tenant SQLite. Three agents share this host so each
+client process gets its own `var/<role>/` subdirectory to avoid collision; the server
+writes under its own `server-python/var/`:
+
+- Server: `server-python/var/<scope_leaf>/state.db`
+- Agent A: `client-python-a/var/agent-a/<scope_leaf>/state.db`
+- Agent B: `client-python-b/var/agent-b/<scope_leaf>/state.db`
+- Agent C: `client-python-c/var/agent-c/<scope_leaf>/state.db`
+
+```sh
+sqlite3 server-python/var/default/state.db \
+  "SELECT scope_leaf, status, COUNT(*) AS runs, AVG(duration_ms) AS avg_ms \
+   FROM telemetry GROUP BY scope_leaf, status"
+```
+
+The `var/` dirs are gitignored — the runtime DB never gets committed.
+
 ## References
 
 - Design doc: [`../../../../chat/docs/plans/2026-04-23-team-communication-design.md`](../../../../chat/docs/plans/2026-04-23-team-communication-design.md)

@@ -5,6 +5,7 @@ import secrets
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import Body, Depends, FastAPI, HTTPException
@@ -18,7 +19,7 @@ from src.chat import bootstrap_channels, create_chat_server
 
 PORT = int(os.environ.get("PORT", "8000"))
 
-chat_server = create_chat_server(store=InMemoryChatStore())
+chat_server = create_chat_server(store=InMemoryChatStore(), data_root=Path("./var"))
 
 
 @asynccontextmanager

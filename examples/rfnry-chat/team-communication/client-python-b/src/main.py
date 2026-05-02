@@ -4,6 +4,7 @@ import asyncio
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,7 @@ from src.agent import IDENTITY
 CHAT_SERVER_URL = os.environ.get("CHAT_SERVER_URL", "http://127.0.0.1:8000")
 PORT = int(os.environ.get("PORT", "9101"))
 
-client = ChatClient(base_url=CHAT_SERVER_URL, identity=IDENTITY)
+client = ChatClient(base_url=CHAT_SERVER_URL, identity=IDENTITY, data_root=Path("./var/agent-b"))
 agent.register(client)
 channels.register(client)
 

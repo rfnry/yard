@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from rfnry_chat_protocol import Identity, Thread
 from rfnry_chat_server import (
@@ -55,7 +56,7 @@ async def bootstrap_channels(store: ChatStore) -> None:
         print(f"bootstrap: created channel thread={thread_id} slug={slug}")
 
 
-def create_chat_server(store: ChatStore) -> ChatServer:
+def create_chat_server(store: ChatStore, *, data_root: Path | None = None) -> ChatServer:
 
     async def _authorize_with_store(
         identity: Identity,
@@ -66,7 +67,7 @@ def create_chat_server(store: ChatStore) -> ChatServer:
     ) -> bool:
         return await _authorize(identity, thread_id, action, store=store, target_id=target_id)
 
-    chat_server = ChatServer(store=store, authorize=_authorize_with_store)
+    chat_server = ChatServer(store=store, authorize=_authorize_with_store, data_root=data_root)
 
     @chat_server.on_message()
     async def log_message(ctx: HandlerContext, _send: Send) -> None:
