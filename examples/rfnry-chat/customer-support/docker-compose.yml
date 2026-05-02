@@ -10,6 +10,8 @@ services:
     env_file:
       - path: ./server-client-python/.env
         required: false
+    environment:
+      RFNRY_OBSERVABILITY_FORMAT: ${RFNRY_OBSERVABILITY_FORMAT:-json}
     ports:
       - "8000:8000"
     command: >

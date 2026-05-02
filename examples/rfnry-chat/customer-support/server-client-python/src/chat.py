@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from rfnry_chat_server import (
     ChatServer,
     ChatStore,
@@ -9,8 +11,8 @@ from rfnry_chat_server import (
 )
 
 
-def create_chat_server(store: ChatStore) -> ChatServer:
-    chat_server = ChatServer(store=store)
+def create_chat_server(store: ChatStore, *, data_root: Path | None = None) -> ChatServer:
+    chat_server = ChatServer(store=store, data_root=data_root)
 
     @chat_server.on_message()
     async def handle_message(ctx: HandlerContext, _send: Send) -> None:

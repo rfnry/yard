@@ -31,3 +31,37 @@ Service names: `agent`, `web`
 
 Place the agent `.env` file in the agent's source dir (`server-client-python/.env`).
 The compose file loads it via `env_file:` with `required: false` so the file is optional.
+
+## Observability + Telemetry
+
+This example uses the always-on observability + telemetry shipped with `rfnry-chat-server` / `rfnry-chat-client`. Because this example bundles the chat server and the support agent in **one process**, both write into the same `var/` tree — so we split them by role:
+
+- Server: `data_root=Path("./var/server")` → `server-client-python/var/server/<scope_leaf>/state.db`
+- Agent : `data_root=Path("./var/agent")`  → `server-client-python/var/agent/<scope_leaf>/state.db`
+
+That keeps server-side run telemetry distinct from the agent's, even though they share the cwd.
+
+### Live tail (stderr)
+
+In a TTY, log records are pretty-printed with colors. From `docker compose logs -f`, default is JSONL (no TTY detected). Force a mode:
+
+```sh
+RFNRY_OBSERVABILITY_FORMAT=pretty docker compose up
+RFNRY_OBSERVABILITY_FORMAT=json docker compose up | jq .
+```
+
+Set `NO_COLOR=1` to disable colors in pretty mode.
+
+### Telemetry SQLite
+
+```sh
+sqlite3 server-client-python/var/server/default/state.db \
+  "SELECT scope_leaf, status, COUNT(*) AS runs, AVG(duration_ms) AS avg_ms \
+   FROM telemetry GROUP BY scope_leaf, status"
+
+sqlite3 server-client-python/var/agent/default/state.db \
+  "SELECT scope_leaf, status, COUNT(*) AS runs, AVG(duration_ms) AS avg_ms \
+   FROM telemetry GROUP BY scope_leaf, status"
+```
+
+The `var/` dir is gitignored — the runtime DB never gets committed.

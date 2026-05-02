@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from rfnry_chat_client import ChatClient
 from rfnry_chat_protocol import AssistantIdentity
 
@@ -9,9 +11,9 @@ ASSISTANT_ID = "cs-agent"
 ASSISTANT_NAME = "Customer Support"
 
 
-def create_chat_client(base_url: str) -> ChatClient:
+def create_chat_client(base_url: str, *, data_root: Path | None = None) -> ChatClient:
     identity = AssistantIdentity(id=ASSISTANT_ID, name=ASSISTANT_NAME)
-    chat_client = ChatClient(base_url=base_url, identity=identity)
+    chat_client = ChatClient(base_url=base_url, identity=identity, data_root=data_root)
     assistant.register(chat_client, identity)
     print(f"agent client built id={identity.id} base_url={base_url}")
     return chat_client

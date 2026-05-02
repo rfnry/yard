@@ -1174,7 +1174,7 @@ wheels = [
 
 [[package]]
 name = "rfnry-chat-client"
-version = "0.2.1"
+version = "0.1.0"
 source = { editable = "../../../../../chat/packages/client-python" }
 dependencies = [
     { name = "aiohttp" },
@@ -1188,6 +1188,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.5" },
     { name = "asyncpg", marker = "extra == 'dev'", specifier = ">=0.31.0" },
+    { name = "asyncpg", marker = "extra == 'postgres'", specifier = ">=0.31.0" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.4.3" },
     { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.136.0" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -1203,7 +1204,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.11" },
     { name = "uvicorn", marker = "extra == 'dev'", specifier = ">=0.44.0" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "postgres"]
 
 [[package]]
 name = "rfnry-chat-example-customer-support"
@@ -1263,7 +1264,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "rfnry-chat-server"
-version = "0.2.2"
+version = "0.1.0"
 source = { editable = "../../../../../chat/packages/server-python" }
 dependencies = [
     { name = "asyncpg" },
