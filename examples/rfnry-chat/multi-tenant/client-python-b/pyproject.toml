@@ -2,12 +2,12 @@
 name = "rfnry-chat-example-multi-tenant-agent-b"
 version = "0.0.1"
 description = "Multi-tenant example — standalone agent for organization-b (serves workspace-b-1 and workspace-b-2)"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "rfnry-chat-protocol",
-    "rfnry-chat-client",
-    "anthropic>=0.80.0",
+    "rfnry-chat-client[anthropic]",
     "httpx>=0.28.1",
+    "pydantic>=2.13.2",
 ]
 
 [tool.uv.sources]
@@ -30,7 +30,7 @@ packages = ["src"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
