@@ -6,17 +6,18 @@ from contextlib import asynccontextmanager
 
 from rfnry_rag import (
     AnalyzedIngestion,
+    AnthropicModelProvider,
     DocumentIngestion,
     DocumentRetrieval,
     DrawingIngestion,
     Embeddings,
     GenerationConfig,
+    GenerativeModelClient,
     GraphIngestion,
     GraphRetrieval,
     IngestionConfig,
-    LanguageModelClient,
-    LanguageModel,
     Neo4jGraphStore,
+    OpenAIModelProvider,
     PostgresDocumentStore,
     QdrantVectorStore,
     QueryMode,
@@ -50,12 +51,11 @@ def _require(env: str) -> str:
     return value
 
 
-def _generation_client() -> LanguageModelClient:
-    return LanguageModelClient(
-        lm=LanguageModel(
-            provider="anthropic",
-            model=os.environ.get("GENERATION_MODEL", "claude-sonnet-4-5"),
+def _generation_client() -> GenerativeModelClient:
+    return GenerativeModelClient(
+        provider=AnthropicModelProvider(
             api_key=_require("ANTHROPIC_API_KEY"),
+            model=os.environ.get("GENERATION_MODEL", "claude-sonnet-4-5"),
         ),
     )
 
@@ -65,18 +65,16 @@ def _build_config() -> RagEngineConfig:
     anthropic_key = _require("ANTHROPIC_API_KEY")
 
     embeddings = Embeddings(
-        LanguageModel(
-            provider="openai",
-            model=os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small"),
+        OpenAIModelProvider(
             api_key=openai_key,
-        )
+            model=os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small"),
+        ),
     )
     vision = Vision(
-        LanguageModel(
-            provider="anthropic",
-            model=os.environ.get("VISION_MODEL", "claude-sonnet-4-5"),
+        AnthropicModelProvider(
             api_key=anthropic_key,
-        )
+            model=os.environ.get("VISION_MODEL", "claude-sonnet-4-5"),
+        ),
     )
 
     vector_store = QdrantVectorStore(
