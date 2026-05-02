@@ -74,7 +74,7 @@ def register(app: FastAPI) -> None:
             "task": req.task,
             "patterns_promoted": result.patterns_promoted,
             "patterns_rejected": result.patterns_rejected,
-            "lessons_refs": [str(p) for p in result.lessons_refs],
+            "lesson_ids": list(result.lesson_ids),
         }
 
     @app.post("/optimize/skill")

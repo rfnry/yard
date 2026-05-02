@@ -7,9 +7,13 @@ from anthropic import AsyncAnthropic
 from rfnry import (
     Agent,
     GEPAOptimizeConfig,
+    Observability,
+    PrettyStderrSink,
     RefiningConfig,
     RefiningSkillsConfig,
     RefiningTasksConfig,
+    SqliteTelemetrySink,
+    Telemetry,
 )
 from rfnry.providers.anthropic import AnthropicProvider
 
@@ -30,8 +34,7 @@ agent = Agent(
             RefiningTasksConfig(lookback=20),
             RefiningSkillsConfig(optimize=GEPAOptimizeConfig(budget="small")),
         ],
-        use_sqlite_lessons=True,
-        use_sqlite_reflections=True,
-        use_sqlite_consolidations=True,
     ),
+    observability=Observability(sink=PrettyStderrSink()),
+    telemetry=Telemetry(sink=SqliteTelemetrySink(agent_root=AGENT_ROOT)),
 )

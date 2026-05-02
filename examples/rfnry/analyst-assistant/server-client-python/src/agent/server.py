@@ -4,7 +4,15 @@ import os
 from pathlib import Path
 
 from anthropic import AsyncAnthropic
-from rfnry import Agent, RefiningConfig, RefiningTasksConfig
+from rfnry import (
+    Agent,
+    Observability,
+    PrettyStderrSink,
+    RefiningConfig,
+    RefiningTasksConfig,
+    SqliteTelemetrySink,
+    Telemetry,
+)
 from rfnry.providers.anthropic import AnthropicProvider
 
 from src.agent.schemas import CompetitorProfile, MarketScan, WeeklySummary
@@ -26,4 +34,6 @@ agent = Agent(
     refining=RefiningConfig(
         methods=[RefiningTasksConfig(lookback=10)],
     ),
+    observability=Observability(sink=PrettyStderrSink()),
+    telemetry=Telemetry(sink=SqliteTelemetrySink(agent_root=AGENT_ROOT)),
 )
