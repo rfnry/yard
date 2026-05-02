@@ -235,3 +235,37 @@ cd client-react        && npm install          && npm run dev
 Optional: `export ANTHROPIC_API_KEY=sk-ant-...` for real replies. Without it the agents stub out with a visible `[stub reply from …]` message so you can still see routing end-to-end.
 
 Open multiple browser tabs to simulate different guests. Flip between roles to escalate/de-escalate a given tab without reloading.
+
+## Observability + Telemetry
+
+This example uses the always-on observability + telemetry shipped with `rfnry-chat-server` / `rfnry-chat-client`.
+
+### Live tail (stderr)
+
+In a TTY, log records are pretty-printed with colors. From `docker compose logs -f`, default is JSONL (no TTY detected). Force a mode:
+
+```sh
+RFNRY_OBSERVABILITY_FORMAT=pretty docker compose up
+RFNRY_OBSERVABILITY_FORMAT=json docker compose up | jq .
+```
+
+Set `NO_COLOR=1` to disable colors in pretty mode.
+
+### Telemetry SQLite
+
+One row per `Run` is written to per-tenant SQLite. Two agents share this host so each
+client process gets its own `var/<role>/` subdirectory to avoid collision; the server
+writes under its own `server-python/var/`. With multi-tenant rooted threads, the
+`scope_leaf` is the tenant path (e.g. `organization-a__workspace-a-1`):
+
+- Server: `server-python/var/<scope_leaf>/state.db`
+- Agent A: `client-python-a/var/agent-a/<scope_leaf>/state.db`
+- Agent B: `client-python-b/var/agent-b/<scope_leaf>/state.db`
+
+```sh
+sqlite3 server-python/var/default/state.db \
+  "SELECT scope_leaf, status, COUNT(*) AS runs, AVG(duration_ms) AS avg_ms \
+   FROM telemetry GROUP BY scope_leaf, status"
+```
+
+The `var/` dirs are gitignored — the runtime DB never gets committed.

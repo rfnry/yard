@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,7 @@ from src.chat import create_chat_server
 
 PORT = int(os.environ.get("PORT", "8000"))
 
-chat_server = create_chat_server(store=InMemoryChatStore())
+chat_server = create_chat_server(store=InMemoryChatStore(), data_root=Path("./var"))
 
 app = FastAPI(title="multi-tenant")
 app.state.chat_server = chat_server

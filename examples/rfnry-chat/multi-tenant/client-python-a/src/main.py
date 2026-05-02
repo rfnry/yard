@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 
 from rfnry_chat_client import ChatClient
 
@@ -13,7 +14,7 @@ DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 
 async def main() -> None:
     base_url = os.environ.get("CHAT_SERVER_URL", DEFAULT_BASE_URL)
-    client = ChatClient(base_url=base_url, identity=IDENTITY)
+    client = ChatClient(base_url=base_url, identity=IDENTITY, data_root=Path("./var/agent-a"))
     register(client)
     channels.register(client)
 
