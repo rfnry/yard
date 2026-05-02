@@ -2,15 +2,15 @@
 name = "rfnry-chat-example-customer-support"
 version = "0.0.1"
 description = "Customer support — in-process chat server + embedded AI agent"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "rfnry-chat-protocol",
     "rfnry-chat-server",
-    "rfnry-chat-client",
-    "anthropic>=0.80.0",
+    "rfnry-chat-client[anthropic]",
     "fastapi>=0.136.0",
     "uvicorn[standard]>=0.44.0",
     "httpx>=0.28.1",
+    "pydantic>=2.13.2",
 ]
 
 [tool.uv.sources]
@@ -34,7 +34,7 @@ packages = ["src"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
