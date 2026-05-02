@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "default_retention_days": 90,
+  "categories": {
+    "operational_logs": {"days": 30, "encrypted": true},
+    "audit_trail": {"days": 365, "encrypted": true},
+    "customer_data": {"days": 730, "encrypted": true},
+    "marketing_analytics": {"days": 90, "encrypted": false}
+  },
+  "owner": "data-governance@example.com"
+}

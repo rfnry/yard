@@ -679,7 +679,7 @@ dev = [
 ]
 
 [[package]]
-name = "rfnry-example-marketplace-assistant"
+name = "rfnry-example-analyst-assistant"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
