@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from rfnry import Agent, ConsolidationResult
+from rfnry import AgentEngine, ConsolidationResult
 
 
 async def run_consolidate(
-    agent: Agent,
+    agent: AgentEngine,
     *,
     scope: dict[str, str],
     task: str,

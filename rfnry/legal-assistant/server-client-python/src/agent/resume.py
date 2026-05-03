@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from rfnry import Agent
+from rfnry import AgentEngine
 
 
 async def run_resume(
-    agent: Agent,
+    agent: AgentEngine,
     *,
     session_id: str,
     scope: dict[str, str],

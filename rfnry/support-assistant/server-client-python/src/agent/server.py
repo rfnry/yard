@@ -5,7 +5,7 @@ from pathlib import Path
 
 from anthropic import AsyncAnthropic
 from rfnry import (
-    Agent,
+    AgentEngine,
     Observability,
     PrettyStderrSink,
     RefiningConfig,
@@ -13,11 +13,12 @@ from rfnry import (
     SqliteTelemetrySink,
     Telemetry,
 )
-from rfnry.providers.anthropic import AnthropicProvider
+
+from src.agent.provider import AnthropicProvider
 
 AGENT_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agent"
 
-agent = Agent(
+agent = AgentEngine(
     root=AGENT_ROOT,
     provider=AnthropicProvider(
         client=AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]),

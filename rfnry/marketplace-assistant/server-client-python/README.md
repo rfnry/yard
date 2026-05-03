@@ -9,7 +9,7 @@ server-client-python/
     ├── main.py         FastAPI infra
     ├── routes.py       HTTP routes — Pydantic + HTTP↔agent.* binding
     └── agent/          the Python application layer
-        ├── server.py   `agent = Agent(...)` — module-level binding
+        ├── server.py   `agent = AgentEngine(...)` — module-level binding
         ├── turn.py     run_turn
         └── resume.py   run_resume
 ```

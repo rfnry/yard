@@ -20,7 +20,7 @@ src/
 ├── main.py                FastAPI entry point
 ├── routes.py              /turn /resume /consolidate /telemetry/{client_id}
 └── agent/
-    ├── server.py          Agent(...) wired with namespaces=["client_id"],
+    ├── server.py          AgentEngine(...) wired with namespaces=["client_id"],
     │                      output_schemas={...},
     │                      RefiningConfig(methods=[RefiningTasksConfig(lookback=10)])
     ├── schemas.py         MarketScan, CompetitorProfile, WeeklySummary

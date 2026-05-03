@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from rfnry import Agent
+from rfnry import AgentEngine
 
 from src.agent.schemas import InvestigationReport
 
 
 async def run_turn(
-    agent: Agent,
+    agent: AgentEngine,
     *,
     session_id: str,
     message: str,

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from rfnry import Agent, EditOutcome
+from rfnry import AgentEngine, EditOutcome
 
 
 async def run_optimize_skill(
-    agent: Agent,
+    agent: AgentEngine,
     *,
     scope: dict[str, str],
     task: str,
