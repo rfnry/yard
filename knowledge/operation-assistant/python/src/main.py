@@ -9,15 +9,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src import routes
-from src.rag import lifespan_engine
+from src.knowledge import lifespan_engine
+from src.providers import Settings
 
 PORT = int(os.environ.get("PORT", "8201"))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    async with lifespan_engine() as rag:
-        app.state.rag = rag
+    settings = Settings.from_env()
+    app.state.settings = settings
+    async with lifespan_engine() as engine:
+        app.state.engine = engine
         yield
 
 
