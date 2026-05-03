@@ -16,13 +16,13 @@ from rfnry_rag import (
     GraphIngestion,
     GraphRetrieval,
     IngestionConfig,
+    KnowledgeEngine,
+    KnowledgeEngineConfig,
     Neo4jGraphStore,
     OpenAIModelProvider,
     PostgresDocumentStore,
     QdrantVectorStore,
     QueryMode,
-    RagEngine,
-    RagEngineConfig,
     RetrievalConfig,
     RoutingConfig,
     SQLAlchemyMetadataStore,
@@ -60,7 +60,7 @@ def _generation_client() -> GenerativeModelClient:
     )
 
 
-def _build_config() -> RagEngineConfig:
+def _build_config() -> KnowledgeEngineConfig:
     openai_key = _require("OPENAI_API_KEY")
     anthropic_key = _require("ANTHROPIC_API_KEY")
 
@@ -174,7 +174,7 @@ def _build_config() -> RagEngineConfig:
 
     observability = Observability(sink=default_observability_sink())
 
-    return RagEngineConfig(
+    return KnowledgeEngineConfig(
         metadata_store=metadata_store,
         ingestion=ingestion,
         retrieval=retrieval,
@@ -185,7 +185,7 @@ def _build_config() -> RagEngineConfig:
 
 
 @asynccontextmanager
-async def lifespan_engine() -> AsyncIterator[RagEngine]:
-    engine = RagEngine(_build_config())
+async def lifespan_engine() -> AsyncIterator[KnowledgeEngine]:
+    engine = KnowledgeEngine(_build_config())
     async with engine:
         yield engine

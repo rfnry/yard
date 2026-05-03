@@ -1,10 +1,10 @@
 [project]
-name = "rfnry-rag-example-operation-assistant"
+name = "rfnry-knowledge-example-operation-assistant"
 version = "0.0.1"
 description = "Operation-assistant — factory technician RAG over machine manuals + mechanical drawings"
 requires-python = ">=3.12"
 dependencies = [
-    "rfnry-rag[graph]",
+    "rfnry-knowledge[graph]",
     "fastapi>=0.136.0",
     "uvicorn[standard]>=0.44.0",
     "python-multipart>=0.0.20",
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-rfnry-rag = { path = "../../../../../rag/packages/python", editable = true }
+rfnry-knowledge = { path = "../../../../../knowledge/packages/python", editable = true }
 
 [project.optional-dependencies]
 dev = [

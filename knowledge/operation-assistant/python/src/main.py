@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
 
 
-app = FastAPI(title="rfnry-rag-example-operation-assistant", lifespan=lifespan)
+app = FastAPI(title="rfnry-knowledge-example-operation-assistant", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

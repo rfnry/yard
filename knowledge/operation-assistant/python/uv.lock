@@ -2680,9 +2680,9 @@ wheels = [
 ]
 
 [[package]]
-name = "rfnry-rag"
+name = "rfnry-knowledge"
 version = "0.1.0"
-source = { editable = "../../../../../rag/packages/python" }
+source = { editable = "../../../../../knowledge/packages/python" }
 dependencies = [
     { name = "aiosqlite" },
     { name = "anthropic" },
@@ -2743,14 +2743,14 @@ requires-dist = [
 provides-extras = ["dev", "graph", "cli"]
 
 [[package]]
-name = "rfnry-rag-example-operation-assistant"
+name = "rfnry-knowledge-example-operation-assistant"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "pydantic" },
     { name = "python-multipart" },
-    { name = "rfnry-rag", extra = ["graph"] },
+    { name = "rfnry-knowledge", extra = ["graph"] },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -2768,7 +2768,7 @@ requires-dist = [
     { name = "poethepoet", marker = "extra == 'dev'", specifier = ">=0.44.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "python-multipart", specifier = ">=0.0.20" },
-    { name = "rfnry-rag", extras = ["graph"], editable = "../../../../../rag/packages/python" },
+    { name = "rfnry-knowledge", extras = ["graph"], editable = "../../../../../knowledge/packages/python" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.11" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
 ]

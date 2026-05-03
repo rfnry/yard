@@ -17,7 +17,7 @@ operation-assistant/
     ├── pyproject.toml
     └── src/
         ├── main.py         # FastAPI entrypoint (infra only)
-        ├── rag.py          # RagEngine factory + lifespan
+        ├── engine.py          # KnowledgeEngine factory + lifespan
         ├── routes.py       # /ingest, /query, /knowledge, /sources/{id}, /health
         └── schemas.py
 ```
@@ -42,7 +42,7 @@ indexed pipeline. Grounding gate is on with `threshold=0.4`.
 ## Run
 
 ```bash
-cd yard/examples/rfnry-rag/operation-assistant
+cd yard/examples/rfnry-knowledge/operation-assistant
 
 docker compose up -d                       # qdrant + postgres + neo4j
 
@@ -59,7 +59,7 @@ ties to the server's environment.
 
 ```bash
 # from the repo root or anywhere
-uv run yard/examples/rfnry-rag/operation-assistant/documents/md_to_pdf.py
+uv run yard/examples/rfnry-knowledge/operation-assistant/documents/md_to_pdf.py
 ```
 
 That renders every `*.md` in `documents/` to a sibling `*.pdf`. Drop more
@@ -128,12 +128,12 @@ pipeline; `quick-reference` keeps demonstrating the cached full-context path.
 
 Both modules are wired and always-on:
 
-- **Observability** uses `default_observability_sink()` — auto-detects: `PrettyStderrSink` when stderr is a TTY (developer terminals, color-tagged single-line records), `JsonlStderrSink` everywhere else (Docker, CI, log shippers). Override with `RFNRY_RAG_OBSERVABILITY_FORMAT={pretty,json}`; honors `NO_COLOR`.
-- **Telemetry** auto-wires `SqlAlchemyTelemetrySink(metadata_store)` whenever `RagEngineConfig` receives a `metadata_store` and no explicit telemetry sink — one row per query / ingest persists to the same Postgres database as metadata, in tables `rag_query_telemetry` and `rag_ingest_telemetry` (auto-created on init). Inspect rollups with the metadata store's URL:
+- **Observability** uses `default_observability_sink()` — auto-detects: `PrettyStderrSink` when stderr is a TTY (developer terminals, color-tagged single-line records), `JsonlStderrSink` everywhere else (Docker, CI, log shippers). Override with `KNWL_OBSERVABILITY_FORMAT={pretty,json}`; honors `NO_COLOR`.
+- **Telemetry** auto-wires `SqlAlchemyTelemetrySink(metadata_store)` whenever `KnowledgeEngineConfig` receives a `metadata_store` and no explicit telemetry sink — one row per query / ingest persists to the same Postgres database as metadata, in tables `knowledge_query_telemetry` and `knowledge_ingest_telemetry` (auto-created on init). Inspect rollups with the metadata store's URL:
 
 ```bash
-psql "$POSTGRES_URL" -c "SELECT knowledge_id, COUNT(*) AS queries, SUM(tokens_input + tokens_output) AS total_tokens FROM rag_query_telemetry GROUP BY knowledge_id;"
-psql "$POSTGRES_URL" -c "SELECT knowledge_id, source_id, outcome, duration_ms FROM rag_ingest_telemetry ORDER BY at DESC LIMIT 10;"
+psql "$POSTGRES_URL" -c "SELECT knowledge_id, COUNT(*) AS queries, SUM(tokens_input + tokens_output) AS total_tokens FROM knowledge_query_telemetry GROUP BY knowledge_id;"
+psql "$POSTGRES_URL" -c "SELECT knowledge_id, source_id, outcome, duration_ms FROM knowledge_ingest_telemetry ORDER BY at DESC LIMIT 10;"
 ```
 
 Pricing is downstream — the library emits raw token counts only. Apply rate cards in your admin UI / dashboard against `tokens_input`, `tokens_output`, `tokens_cache_creation`, `tokens_cache_read`.
@@ -149,5 +149,5 @@ Pricing is downstream — the library emits raw token counts only. Apply rate ca
 | `EMBEDDING_MODEL`                  | `text-embedding-3-small`           | OpenAI                                                                 |
 | `GENERATION_MODEL`                 | `claude-sonnet-4-5`                | Anthropic                                                              |
 | `VISION_MODEL`                     | `claude-sonnet-4-5`                | Anthropic — drives the drawing pipeline                                |
-| `RFNRY_RAG_OBSERVABILITY_FORMAT`   | *(auto)*                           | `pretty` or `json` — overrides the TTY-detection default               |
+| `KNWL_OBSERVABILITY_FORMAT`   | *(auto)*                           | `pretty` or `json` — overrides the TTY-detection default               |
 | `NO_COLOR`                         | *(unset)*                          | disables ANSI color in `PrettyStderrSink`                              |

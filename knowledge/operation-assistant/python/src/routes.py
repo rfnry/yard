@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from rfnry_rag import RagEngine
+from rfnry_rag import KnowledgeEngine
 from rfnry_rag.exceptions import DuplicateSourceError, IngestionError
 
 from src.rag import DEFAULT_KNOWLEDGE_ID
@@ -19,7 +19,7 @@ from src.schemas import (
 )
 
 
-def _engine(request: Request) -> RagEngine:
+def _engine(request: Request) -> KnowledgeEngine:
     return request.app.state.rag
 
 
