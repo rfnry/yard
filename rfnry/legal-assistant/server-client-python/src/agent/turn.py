@@ -5,10 +5,11 @@ from typing import Any
 from rfnry import AgentEngine
 
 from src.agent.schemas import InvestigationReport
+from src.agent.server import RECORDS_AGENT, TEAM_NAME
 
 
 async def run_turn(
-    agent: AgentEngine,
+    engine: AgentEngine,
     *,
     session_id: str,
     message: str,
@@ -16,17 +17,21 @@ async def run_turn(
     task: str | None,
 ) -> str | dict[str, Any]:
     if task == "investigate":
-        report = await agent.turn(
+        report = await engine.turn(
             session_id=session_id,
             message=message,
             scope=scope,
+            team=TEAM_NAME,
+            agent=RECORDS_AGENT,
             task=task,
             expect=InvestigationReport,
         )
         return report.model_dump(mode="json")
-    return await agent.turn(
+    return await engine.turn(
         session_id=session_id,
         message=message,
         scope=scope,
+        team=TEAM_NAME,
+        agent=RECORDS_AGENT,
         task=task,
     )

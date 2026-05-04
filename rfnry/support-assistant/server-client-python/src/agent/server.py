@@ -16,10 +16,11 @@ from rfnry import (
 
 from src.agent.provider import AnthropicProvider
 
-AGENT_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agent"
+AGENTS_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agents"
+AGENT_NAME = "support-assistant"
 
 agent = AgentEngine(
-    root=AGENT_ROOT,
+    agents=AGENTS_ROOT,
     provider=AnthropicProvider(
         client=AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]),
         model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
@@ -28,5 +29,5 @@ agent = AgentEngine(
         methods=[RefiningTasksConfig(lookback=10)],
     ),
     observability=Observability(sink=PrettyStderrSink()),
-    telemetry=Telemetry(sink=SqliteTelemetrySink(agent_root=AGENT_ROOT)),
+    telemetry=Telemetry(sink=SqliteTelemetrySink(agent_root=AGENTS_ROOT / AGENT_NAME)),
 )

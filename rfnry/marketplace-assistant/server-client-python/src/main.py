@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src import routes
-from src.agent.server import AGENT_ROOT, agent
+from src.agent.server import AGENTS_ROOT, agent
 
 PORT = int(os.environ.get("PORT", "8103"))
 
@@ -25,7 +25,7 @@ routes.register(app)
 
 
 if __name__ == "__main__":
-    print(f"marketplace-assistant agent root: {AGENT_ROOT}")
+    print(f"marketplace-assistant agent root: {AGENTS_ROOT}")
     print(f"listening on http://0.0.0.0:{PORT}")
     try:
         uvicorn.run(app, host="0.0.0.0", port=PORT)

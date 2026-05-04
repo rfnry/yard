@@ -19,14 +19,23 @@ from rfnry import (
 from src.agent.provider import AnthropicProvider
 from src.agent.schemas import InvestigationReport
 
-AGENT_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agent"
+AGENTS_ROOT: Path = Path(__file__).resolve().parent.parent.parent / "agents"
+TEAM_NAME = "litigation-team"
+LEADER_NAME = "case-strategist"
+RECORDS_AGENT = "records-investigator"
+WORKFLOW_NAME = "client-intake"
 
-agent = AgentEngine(
-    root=AGENT_ROOT,
-    provider=AnthropicProvider(
+
+def _provider_for(_member_name: str) -> AnthropicProvider:
+    return AnthropicProvider(
         client=AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"]),
         model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-    ),
+    )
+
+
+engine = AgentEngine(
+    agents=AGENTS_ROOT,
+    provider=_provider_for,
     namespaces=["case_id"],
     output_schemas={"InvestigationReport": InvestigationReport},
     refining=RefiningConfig(
@@ -36,5 +45,7 @@ agent = AgentEngine(
         ],
     ),
     observability=Observability(sink=PrettyStderrSink()),
-    telemetry=Telemetry(sink=SqliteTelemetrySink(agent_root=AGENT_ROOT)),
+    telemetry=Telemetry(
+        sink=SqliteTelemetrySink(agent_root=AGENTS_ROOT / TEAM_NAME)
+    ),
 )
