@@ -1,47 +1,30 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from src.agent import run_resume, run_turn
+from src.engine import resume, turn
 
 
 class TurnRequest(BaseModel):
     session_id: str
     message: str
-    task: str | None = "resolve-customer-issue"
 
 
 class ResumeRequest(BaseModel):
     session_id: str
-    task: str | None = "resolve-customer-issue"
 
 
 def register(app: FastAPI) -> None:
-    @app.get("/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
-
     @app.post("/turn")
-    async def turn(req: TurnRequest, request: Request) -> dict[str, str]:
+    async def turn_route(req: TurnRequest) -> dict[str, str]:
         try:
-            reply = await run_turn(
-                request.app.state.agent,
-                session_id=req.session_id,
-                message=req.message,
-                scope={},
-                task=req.task,
-            )
+            reply = await turn(req.session_id, req.message)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "reply": reply}
 
     @app.post("/resume")
-    async def resume(req: ResumeRequest, request: Request) -> dict[str, str]:
-        reply = await run_resume(
-            request.app.state.agent,
-            session_id=req.session_id,
-            scope={},
-            task=req.task,
-        )
+    async def resume_route(req: ResumeRequest) -> dict[str, str]:
+        reply = await resume(req.session_id)
         return {"session_id": req.session_id, "reply": reply}

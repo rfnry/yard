@@ -8,7 +8,7 @@ from rfnry import AgentEngine
 from rfnry_knowledge import KnowledgeEngine
 from rfnry_knowledge.exceptions import DuplicateSourceError, IngestionError
 
-from src.agent import run_resume, run_turn
+from src.engine import resume, turn
 from src.schemas import (
     IngestResponse,
     KnowledgeListResponse,
@@ -26,8 +26,8 @@ _INGEST_TYPE_MAP: dict[SourceType, str] = {
 }
 
 
-def _agent(request: Request) -> AgentEngine:
-    return request.app.state.agent
+def _agent_engine(request: Request) -> AgentEngine:
+    return request.app.state.agent_engine
 
 
 def _knowledge(request: Request) -> KnowledgeEngine:
@@ -39,34 +39,19 @@ def _settings(request: Request) -> Settings:
 
 
 def register(app: FastAPI) -> None:
-    @app.get("/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
-
     @app.post("/threads/{thread_id}/messages", response_model=MessageResponse)
     async def post_message(
         thread_id: str, req: MessageRequest, request: Request
     ) -> MessageResponse:
         try:
-            reply = await run_turn(
-                _agent(request),
-                session_id=thread_id,
-                message=req.message,
-                scope={},
-                task="assist-technician",
-            )
+            reply = await turn(_agent_engine(request), thread_id, req.message)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return MessageResponse(thread_id=thread_id, reply=reply)
 
     @app.post("/threads/{thread_id}/resume", response_model=MessageResponse)
     async def resume_thread(thread_id: str, request: Request) -> MessageResponse:
-        reply = await run_resume(
-            _agent(request),
-            session_id=thread_id,
-            scope={},
-            task="assist-technician",
-        )
+        reply = await resume(_agent_engine(request), thread_id)
         return MessageResponse(thread_id=thread_id, reply=reply)
 
     @app.post("/ingest", response_model=IngestResponse)

@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from src.agent import run_consolidate, run_optimize_skill, run_resume, run_turn
-from src.agent.server import LEADER_NAME, TEAM_NAME, WORKFLOW_NAME
+from src.engine import (
+    TEAM_NAME,
+    agent_engine,
+    consolidate,
+    optimize_skill,
+    resume,
+    resume_workflow,
+    run_workflow,
+    team_turn,
+    turn,
+)
 
 
 class TurnRequest(BaseModel):
@@ -17,7 +26,6 @@ class TurnRequest(BaseModel):
 class ResumeRequest(BaseModel):
     session_id: str
     case_id: str
-    task: str | None = "investigate"
 
 
 class ConsolidateRequest(BaseModel):
@@ -49,49 +57,25 @@ class WorkflowResumeRequest(BaseModel):
 
 
 def register(app: FastAPI) -> None:
-    @app.get("/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
-
-    # ---------------------------------------------------------------- single agent
-    # The records-investigator alone, dispatched by (team, agent). Same surface
-    # as before the engine refactor — useful for direct tool exercises and the
-    # /consolidate and /optimize/skill paths that target one member's task.
-
     @app.post("/turn")
-    async def turn(req: TurnRequest, request: Request) -> dict[str, object]:
+    async def turn_route(req: TurnRequest) -> dict[str, object]:
         try:
-            reply = await run_turn(
-                request.app.state.engine,
-                session_id=req.session_id,
-                message=req.message,
-                scope={"case_id": req.case_id},
-                task=req.task,
-            )
+            reply = await turn(req.session_id, req.case_id, req.message, req.task)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "case_id": req.case_id, "reply": reply}
 
     @app.post("/resume")
-    async def resume(req: ResumeRequest, request: Request) -> dict[str, object]:
-        reply = await run_resume(
-            request.app.state.engine,
-            session_id=req.session_id,
-            scope={"case_id": req.case_id},
-            task=req.task,
-        )
+    async def resume_route(req: ResumeRequest) -> dict[str, object]:
+        reply = await resume(req.session_id, req.case_id)
         return {"session_id": req.session_id, "case_id": req.case_id, "reply": reply}
 
     @app.post("/consolidate")
-    async def consolidate(req: ConsolidateRequest, request: Request) -> dict[str, object]:
+    async def consolidate_route(req: ConsolidateRequest) -> dict[str, object]:
         try:
-            result = await run_consolidate(
-                request.app.state.engine,
-                scope={"case_id": req.case_id},
-                task=req.task,
-            )
+            result = await consolidate(req.case_id, req.task)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {
             "case_id": req.case_id,
             "task": req.task,
@@ -101,16 +85,11 @@ def register(app: FastAPI) -> None:
         }
 
     @app.post("/optimize/skill")
-    async def optimize_skill(req: OptimizeSkillRequest, request: Request) -> dict[str, object]:
+    async def optimize_skill_route(req: OptimizeSkillRequest) -> dict[str, object]:
         try:
-            outcomes = await run_optimize_skill(
-                request.app.state.engine,
-                scope={"case_id": req.case_id},
-                task=req.task,
-                skill=req.skill,
-            )
+            outcomes = await optimize_skill(req.case_id, req.task, req.skill)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {
             "case_id": req.case_id,
             "skill": req.skill,
@@ -118,56 +97,34 @@ def register(app: FastAPI) -> None:
             "outcomes": [o.model_dump(mode="json") for o in outcomes],
         }
 
-    # -------------------------------------------------------------------------- team
-    # The case-strategist (leader) decides delegation dynamically.
-
     @app.get("/team")
-    async def team_info(request: Request) -> dict[str, object]:
-        engine = request.app.state.engine
+    async def team_info() -> dict[str, object]:
         return {
             "name": TEAM_NAME,
-            "leader": engine.team_leader(TEAM_NAME),
-            "members": engine.team_members(TEAM_NAME),
+            "leader": agent_engine.team_leader(TEAM_NAME),
+            "members": agent_engine.team_members(TEAM_NAME),
         }
 
     @app.post("/team/turn")
-    async def team_turn(req: TeamTurnRequest, request: Request) -> dict[str, object]:
+    async def team_turn_route(req: TeamTurnRequest) -> dict[str, object]:
         try:
-            reply = await request.app.state.engine.turn(
-                session_id=req.session_id,
-                message=req.message,
-                scope={"case_id": req.case_id},
-                team=TEAM_NAME,
-                agent=LEADER_NAME,
-            )
+            reply = await team_turn(req.session_id, req.case_id, req.message)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "case_id": req.case_id, "reply": reply}
 
-    # ---------------------------------------------------------------------- workflow
-    # The same three agents in a deterministic, observable, resumable pipeline.
-
     @app.post("/workflow/run")
-    async def workflow_run(req: WorkflowRunRequest, request: Request) -> dict[str, object]:
+    async def workflow_run_route(req: WorkflowRunRequest) -> dict[str, object]:
         try:
-            output = await request.app.state.engine.run_workflow(
-                name=WORKFLOW_NAME,
-                session_id=req.session_id,
-                input={"case_id": req.case_id, "request": req.request},
-                scope={"case_id": req.case_id},
-            )
+            output = await run_workflow(req.session_id, req.case_id, req.request)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "case_id": req.case_id, "output": output}
 
     @app.post("/workflow/resume")
-    async def workflow_resume(req: WorkflowResumeRequest, request: Request) -> dict[str, object]:
+    async def workflow_resume_route(req: WorkflowResumeRequest) -> dict[str, object]:
         try:
-            output = await request.app.state.engine.resume_workflow(
-                name=WORKFLOW_NAME,
-                session_id=req.session_id,
-                scope={"case_id": req.case_id},
-            )
+            output = await resume_workflow(req.session_id, req.case_id)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "case_id": req.case_id, "output": output}

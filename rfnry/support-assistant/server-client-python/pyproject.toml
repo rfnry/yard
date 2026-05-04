@@ -40,8 +40,8 @@ select = ["E", "F", "I", "UP"]
 quote-style = "double"
 
 [tool.poe.tasks]
-dev = "python -m src.main"
-start = "python -m src.main"
+dev = "python -m src.server"
+start = "python -m src.server"
 format = "ruff format ."
 "format:imports" = "ruff check --select I --fix ."
 check = "ruff check ."

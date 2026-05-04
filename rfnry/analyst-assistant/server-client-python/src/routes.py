@@ -3,10 +3,10 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from src.agent import run_consolidate, run_resume, run_turn
+from src.engine import agent_engine, consolidate, resume, turn
 
 
 class TurnRequest(BaseModel):
@@ -19,7 +19,6 @@ class TurnRequest(BaseModel):
 class ResumeRequest(BaseModel):
     session_id: str
     client_id: str
-    task: str | None = None
 
 
 class ConsolidateRequest(BaseModel):
@@ -28,44 +27,25 @@ class ConsolidateRequest(BaseModel):
 
 
 def register(app: FastAPI) -> None:
-    @app.get("/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
-
     @app.post("/turn")
-    async def turn(req: TurnRequest, request: Request) -> dict[str, object]:
+    async def turn_route(req: TurnRequest) -> dict[str, object]:
         try:
-            reply = await run_turn(
-                request.app.state.agent,
-                session_id=req.session_id,
-                message=req.message,
-                scope={"client_id": req.client_id},
-                task=req.task,
-            )
+            reply = await turn(req.session_id, req.client_id, req.message, req.task)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "client_id": req.client_id, "reply": reply}
 
     @app.post("/resume")
-    async def resume(req: ResumeRequest, request: Request) -> dict[str, object]:
-        reply = await run_resume(
-            request.app.state.agent,
-            session_id=req.session_id,
-            scope={"client_id": req.client_id},
-            task=req.task,
-        )
+    async def resume_route(req: ResumeRequest) -> dict[str, object]:
+        reply = await resume(req.session_id, req.client_id)
         return {"session_id": req.session_id, "client_id": req.client_id, "reply": reply}
 
     @app.post("/consolidate")
-    async def consolidate(req: ConsolidateRequest, request: Request) -> dict[str, object]:
+    async def consolidate_route(req: ConsolidateRequest) -> dict[str, object]:
         try:
-            result = await run_consolidate(
-                request.app.state.agent,
-                scope={"client_id": req.client_id},
-                task=req.task,
-            )
+            result = await consolidate(req.client_id, req.task)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}") from exc
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {
             "client_id": req.client_id,
             "task": req.task,
@@ -75,19 +55,15 @@ def register(app: FastAPI) -> None:
         }
 
     @app.get("/telemetry/{client_id}")
-    async def telemetry(client_id: str, request: Request) -> dict[str, object]:
-        agent = request.app.state.agent
-        db_path = Path(agent.root) / "data" / client_id / "state.db"
+    async def telemetry_route(client_id: str) -> dict[str, object]:
+        runner = agent_engine.runner()
+        db_path = Path(runner.root) / "data" / client_id / "state.db"
         if not db_path.exists():
             return {"client_id": client_id, "rows": [], "totals": {}}
         conn = sqlite3.connect(db_path)
         try:
             conn.row_factory = sqlite3.Row
-            rows = list(
-                conn.execute(
-                    "SELECT * FROM telemetry ORDER BY at DESC LIMIT 200",
-                )
-            )
+            rows = list(conn.execute("SELECT * FROM telemetry ORDER BY at DESC LIMIT 200"))
             totals_row = conn.execute(
                 """
                 SELECT
