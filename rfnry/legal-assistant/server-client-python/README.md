@@ -117,7 +117,7 @@ This example exercises both rfnry refining cadences plus typed task output:
    eval suite for that case + task. Configured via
    `RefiningSkillsConfig(optimize=GEPAOptimizeConfig(budget="small"))`.
 3. **Structured reply (`output_schemas`).** The engine wires
-   `output_schemas={"tasks": {"investigate": InvestigationReport}}`.
+   `output_schemas=OutputSchemas(tasks={"investigate": InvestigationReport})`.
    The harness synthesizes a terminal `OutputSchema` tool whose
    input_schema is the Pydantic class's JSON schema; the model fills
    it in at end of turn and the server returns the validated dict.

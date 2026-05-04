@@ -21,7 +21,7 @@ src/
 ├── routes.py              /turn /resume /consolidate /telemetry/{client_id}
 └── agent/
     ├── server.py          AgentEngine(...) wired with namespaces=["client_id"],
-    │                      output_schemas={...},
+    │                      output_schemas=OutputSchemas(tasks={...}),
     │                      RefiningConfig(methods=[RefiningTasksConfig(lookback=10)])
     ├── schemas.py         MarketScan, CompetitorProfile, WeeklySummary
     ├── turn.py            routes by task → agent.turn(..., expect=Cls)
