@@ -1,6 +1,5 @@
 ---
 name: competitor-profile
-output_schema: CompetitorProfile
 ---
 
 # Competitor profile

@@ -12,7 +12,7 @@ and latency numbers are the literal billing line, not decoration.
 |---|---|
 | **Markdown agent tree** | `agent/{AGENT.md,INDEX.md,rules,skills,tools,tasks}` — one folder per concept; every file is plain markdown editable on GitHub. |
 | **Multi-tenant scope** | `namespaces=["client_id"]`. State partitions under `data/<client_id>/`; the path-jail blocks cross-client reads. |
-| **`output_schema`** | Each task declares a Pydantic model (`MarketScan`, `CompetitorProfile`, `WeeklySummary`); the engine validates the model's reply via Pydantic before returning. |
+| **`output_schemas`** | The engine wires Pydantic classes to task names (`output_schemas={"tasks": {"market-scan": MarketScan, ...}}`); the harness validates each reply via Pydantic before returning. |
 | **Native observability** | The engine emits structured JSONL log records to stderr at every meaningful boundary (turn start/complete, tool call/result, refining/critic errors). Always on; swap the sink to ship logs to ELK/Loki/Datadog. |
 | **Native telemetry** | One `TelemetryRow` per turn lands in `data/<client_id>/state.db.telemetry` — tokens (input/output/cache_creation/cache_read), durations, counts, model identity. Always on; the admin UI queries the SQLite directly. |
 | **Per-client cost rollup** | `GET /telemetry/{client_id}` aggregates the SQLite rows. The admin UI applies its own rate card to the token totals (the engine ships zero pricing knowledge). |

@@ -1,6 +1,5 @@
 ---
 name: market-scan
-output_schema: MarketScan
 ---
 
 # Market scan

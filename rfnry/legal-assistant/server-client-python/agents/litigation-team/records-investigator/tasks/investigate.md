@@ -1,6 +1,5 @@
 ---
 name: investigate
-output_schema: InvestigationReport
 ---
 
 # Investigate

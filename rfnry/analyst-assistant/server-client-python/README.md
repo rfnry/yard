@@ -14,7 +14,7 @@ agent/                     the markdown tree the model navigates
 ├── skills/                pull-market-snapshot, scan-sector
 ├── tools/                 list_companies, company_profile, market_snapshot, news
 └── tasks/                 market-scan, competitor-profile, weekly-summary
-                          (each declares an output_schema)
+                          (each wired to a Pydantic class via output_schemas)
 
 src/
 ├── main.py                FastAPI entry point

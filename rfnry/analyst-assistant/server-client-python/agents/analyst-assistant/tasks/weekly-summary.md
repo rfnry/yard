@@ -1,6 +1,5 @@
 ---
 name: weekly-summary
-output_schema: WeeklySummary
 ---
 
 # Weekly summary

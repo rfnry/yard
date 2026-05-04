@@ -116,12 +116,13 @@ This example exercises both rfnry refining cadences plus typed task output:
    producing a destructive edit to `agent/skills/<skill>.md` gated by the
    eval suite for that case + task. Configured via
    `RefiningSkillsConfig(optimize=GEPAOptimizeConfig(budget="small"))`.
-3. **Structured reply (`output_schema`).** `tasks/investigate.md` declares
-   `output_schema: InvestigationReport`. The harness synthesizes a terminal
-   `OutputSchema` tool whose input_schema is the Pydantic class's JSON
-   schema; the model fills it in at end of turn and the server returns the
-   validated dict. See `src/agent/schemas.py` for the shape and
-   `src/agent/turn.py` for `agent.turn(..., expect=InvestigationReport)`.
+3. **Structured reply (`output_schemas`).** The engine wires
+   `output_schemas={"tasks": {"investigate": InvestigationReport}}`.
+   The harness synthesizes a terminal `OutputSchema` tool whose
+   input_schema is the Pydantic class's JSON schema; the model fills
+   it in at end of turn and the server returns the validated dict.
+   See `src/schemas.py` for the shape and `src/engine.py` for
+   `agent_engine.turn(..., expect=InvestigationReport)`.
 
 Inspect persisted state:
 
