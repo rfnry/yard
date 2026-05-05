@@ -20,12 +20,17 @@ from rfnry import (
 )
 
 from src.provider import AnthropicProvider
-from src.schemas import InvestigationReport
+from src.schemas import (
+    ConflictCheck,
+    FilingReview,
+    IntakeReport,
+    InvestigationReport,
+)
 
-TEAM_NAME = "litigation-team"
-LEADER_NAME = "case-strategist"
+INTAKE_TEAM = "intake-team"
+LITIGATION_TEAM = "litigation-team"
 RECORDS_AGENT = "records-investigator"
-WORKFLOW_NAME = "client-intake"
+WORKFLOW_NAME = "open-matter"
 
 
 def _provider_for(_member_name: str) -> AnthropicProvider:
@@ -39,7 +44,14 @@ agent_engine = AgentEngine(
     agents="../agents",
     provider=_provider_for,
     namespaces=["case_id"],
-    output_schemas=OutputSchemas(tasks={"investigate": InvestigationReport}),
+    output_schemas=OutputSchemas(
+        tasks={
+            "investigate": InvestigationReport,
+            "triage": IntakeReport,
+            "check-conflicts": ConflictCheck,
+            "review-filing": FilingReview,
+        },
+    ),
     refining=RefiningConfig(
         methods=[
             RefiningTasksConfig(lookback=20),
@@ -62,7 +74,7 @@ async def turn(
             session_id=session_id,
             message=message,
             scope={"case_id": case_id},
-            team=TEAM_NAME,
+            team=LITIGATION_TEAM,
             agent=RECORDS_AGENT,
             task=task,
             expect=InvestigationReport,
@@ -72,56 +84,67 @@ async def turn(
         session_id=session_id,
         message=message,
         scope={"case_id": case_id},
-        team=TEAM_NAME,
+        team=LITIGATION_TEAM,
         agent=RECORDS_AGENT,
         task=task,
     )
 
 
 async def resume(session_id: str, case_id: str) -> str:
-    result = await agent_engine.resume(
+    return await agent_engine.resume(
         session_id=session_id,
         scope={"case_id": case_id},
     )
-    return result
 
 
-async def team_turn(session_id: str, case_id: str, message: str) -> str:
-    result = await agent_engine.turn(
+async def intake_turn(session_id: str, case_id: str, message: str) -> str:
+    return await agent_engine.turn(
         session_id=session_id,
         message=message,
         scope={"case_id": case_id},
-        team=TEAM_NAME,
+        team=INTAKE_TEAM,
     )
-    return result
 
 
-async def run_workflow(session_id: str, case_id: str, request: str) -> str:
-    result = await agent_engine.run_workflow(
+async def litigation_turn(session_id: str, case_id: str, message: str) -> str:
+    return await agent_engine.turn(
+        session_id=session_id,
+        message=message,
+        scope={"case_id": case_id},
+        team=LITIGATION_TEAM,
+    )
+
+
+async def run_workflow(
+    session_id: str, case_id: str, client_name: str, matter_summary: str
+) -> str:
+    return await agent_engine.run_workflow(
         name=WORKFLOW_NAME,
         session_id=session_id,
-        input={"case_id": case_id, "request": request},
+        input={
+            "case_id": case_id,
+            "client_name": client_name,
+            "matter_summary": matter_summary,
+        },
         scope={"case_id": case_id},
     )
-    return result
 
 
 async def resume_workflow(session_id: str, case_id: str) -> str:
-    result = await agent_engine.resume_workflow(
+    return await agent_engine.resume_workflow(
         name=WORKFLOW_NAME,
         session_id=session_id,
         scope={"case_id": case_id},
     )
-    return result
 
 
 async def consolidate(case_id: str, task: str) -> ConsolidationResult:
-    runner = agent_engine.runner(team=TEAM_NAME, agent=RECORDS_AGENT)
+    runner = agent_engine.runner(team=LITIGATION_TEAM, agent=RECORDS_AGENT)
     return await runner.consolidate(task=task, scope={"case_id": case_id})
 
 
 async def optimize_skill(case_id: str, task: str, skill: str) -> list[EditOutcome]:
-    runner = agent_engine.runner(team=TEAM_NAME, agent=RECORDS_AGENT)
+    runner = agent_engine.runner(team=LITIGATION_TEAM, agent=RECORDS_AGENT)
     return await runner.optimize_method(
         "skills",
         scope={"case_id": case_id},

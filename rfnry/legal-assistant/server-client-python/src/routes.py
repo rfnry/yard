@@ -4,14 +4,16 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from src.engine import (
-    TEAM_NAME,
+    INTAKE_TEAM,
+    LITIGATION_TEAM,
     agent_engine,
     consolidate,
+    intake_turn,
+    litigation_turn,
     optimize_skill,
     resume,
     resume_workflow,
     run_workflow,
-    team_turn,
     turn,
 )
 
@@ -48,7 +50,8 @@ class TeamTurnRequest(BaseModel):
 class WorkflowRunRequest(BaseModel):
     session_id: str
     case_id: str
-    request: str
+    client_name: str
+    matter_summary: str
 
 
 class WorkflowResumeRequest(BaseModel):
@@ -97,18 +100,33 @@ def register(app: FastAPI) -> None:
             "outcomes": [o.model_dump(mode="json") for o in outcomes],
         }
 
-    @app.get("/team")
-    async def team_info() -> dict[str, object]:
+    @app.get("/teams")
+    async def teams_info() -> dict[str, object]:
         return {
-            "name": TEAM_NAME,
-            "leader": agent_engine.team_leader(TEAM_NAME),
-            "members": agent_engine.team_members(TEAM_NAME),
+            "teams": {
+                INTAKE_TEAM: {
+                    "leader": agent_engine.team_leader(INTAKE_TEAM),
+                    "members": agent_engine.team_members(INTAKE_TEAM),
+                },
+                LITIGATION_TEAM: {
+                    "leader": agent_engine.team_leader(LITIGATION_TEAM),
+                    "members": agent_engine.team_members(LITIGATION_TEAM),
+                },
+            }
         }
 
-    @app.post("/team/turn")
-    async def team_turn_route(req: TeamTurnRequest) -> dict[str, object]:
+    @app.post("/intake/turn")
+    async def intake_turn_route(req: TeamTurnRequest) -> dict[str, object]:
         try:
-            reply = await team_turn(req.session_id, req.case_id, req.message)
+            reply = await intake_turn(req.session_id, req.case_id, req.message)
+        except Exception as exc:
+            raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
+        return {"session_id": req.session_id, "case_id": req.case_id, "reply": reply}
+
+    @app.post("/litigation/turn")
+    async def litigation_turn_route(req: TeamTurnRequest) -> dict[str, object]:
+        try:
+            reply = await litigation_turn(req.session_id, req.case_id, req.message)
         except Exception as exc:
             raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "case_id": req.case_id, "reply": reply}
@@ -116,7 +134,9 @@ def register(app: FastAPI) -> None:
     @app.post("/workflow/run")
     async def workflow_run_route(req: WorkflowRunRequest) -> dict[str, object]:
         try:
-            output = await run_workflow(req.session_id, req.case_id, req.request)
+            output = await run_workflow(
+                req.session_id, req.case_id, req.client_name, req.matter_summary
+            )
         except Exception as exc:
             raise HTTPException(500, detail=f"{type(exc).__name__}: {exc}") from exc
         return {"session_id": req.session_id, "case_id": req.case_id, "output": output}
